@@ -1,4 +1,4 @@
-# SparkX MCP
+# SparkX AI MCP
 
 把 SparkX AI 的广告能力接进你自己的 AI Agent（WorkBuddy、Claude、ChatGPT 等），数据从此融入你的工作流——大白话查数据、做分析、算真账，还能和你自己的成本、利润、目标放在一起算。不用登录平台、不用导表、不用在系统之间来回切换。
 
@@ -50,7 +50,7 @@
 在支持 AI 自主配置的客户端（Claude、ChatGPT Codex、Cherry Studio 等）里直接发送：
 
 ```text
-帮我配置 SparkX MCP
+帮我配置 SparkX AI MCP
 URL：https://mcp.sparkx.cn/mcp
 Token：<你的 token>
 配置完调 get_user_authorized_context 验证。

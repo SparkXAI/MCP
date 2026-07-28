@@ -1,5 +1,5 @@
 {
-  "$schema_note": "Machine-readable manifest of SparkX MCP official skills. Version fields must stay in sync with each skill's SKILL.md frontmatter.",
+  "$schema_note": "Machine-readable manifest of SparkX AI MCP official skills. Version fields must stay in sync with each skill's SKILL.md frontmatter.",
   "manifest_version": 1,
   "updated_at": "2026-07-28",
   "release": "v1.0.0",

@@ -1,6 +1,6 @@
-# SparkX MCP Skills
+# SparkX AI MCP Skills
 
-配合 SparkX MCP 使用的官方 Skills，分两类：
+配合 SparkX AI MCP 使用的官方 Skills，分两类：
 
 - **必装（3 个）**：基础查询能力。**没有它们，MCP 查询的出错率会明显上升**，请务必安装。
 - **可选（4 个）**：面向具体分析场景的进阶玩法，按需安装。

@@ -1,6 +1,6 @@
 # Changelog
 
-本文件记录 SparkX MCP Skills 与配套文档的版本变化。
+本文件记录 SparkX AI MCP Skills 与配套文档的版本变化。
 
 ## [Unreleased]
 
