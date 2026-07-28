@@ -3,11 +3,11 @@
   "manifest_version": 1,
   "updated_at": "2026-07-28",
   "release": "v1.0.0",
-  "download_url": "https://github.com/SparkXAI/MCP/releases/download/v1.0.0/sparkx-mcp-skills-v1.0.0.zip",
   "skills": [
     {
       "name": "query-ads-performance",
       "version": "1.0.0",
+      "required": true,
       "mcp_tool": "get_ads_perf",
       "scope": "amazon_sa:performance:read",
       "path": "query-ads-performance",
@@ -16,6 +16,7 @@
     {
       "name": "query-entity-metadata",
       "version": "1.0.0",
+      "required": true,
       "mcp_tool": "get_entity_metadata",
       "scope": "amazon_sa:ads_configuration:read",
       "path": "query-entity-metadata",
@@ -24,10 +25,39 @@
     {
       "name": "query-operation-log",
       "version": "1.0.0",
+      "required": true,
       "mcp_tool": "get_operation_log",
       "scope": "amazon_sa:ads_logs:read",
       "path": "query-operation-log",
       "description": "Query operation logs: user and AI action history on ad entities (bid, budget, status changes)."
+    },
+    {
+      "name": "weekly-ads-report",
+      "version": "0.9.4",
+      "required": false,
+      "path": "optional/weekly-ads-report",
+      "description": "Generate a weekly ad performance recap: KPI card with WoW comparison, 7-day trend, anomalies, top movers, next-week actions."
+    },
+    {
+      "name": "monthly-ads-report",
+      "version": "0.5.6",
+      "required": false,
+      "path": "optional/monthly-ads-report",
+      "description": "Generate a monthly ad performance recap: full-month KPIs (MoM + YoY), structural breakdown, product and keyword analysis, next-month recommendations."
+    },
+    {
+      "name": "ads-structure-analysis",
+      "version": "0.2.3",
+      "required": false,
+      "path": "optional/ads-structure-analysis",
+      "description": "Analyze spend and efficiency breakdown across campaign type / marketplace / portfolio / weekday dimensions and flag structural mismatches."
+    },
+    {
+      "name": "product-diagnosis",
+      "version": "0.1.11",
+      "required": false,
+      "path": "optional/product-diagnosis",
+      "description": "Diagnose ASIN-level health: lifecycle tiering, variant comparison, diagnostic cards for underperformers, keep/optimize/cut recommendations."
     }
   ]
 }
