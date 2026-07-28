@@ -9,7 +9,7 @@ description: >-
   "structure analysis", "campaign type breakdown". Not for a single-entity trend/anomaly check (use
   weekly-ads-report / monthly-ads-report / a lighter ad-hoc analysis skill), product-level diagnosis
   (use product-diagnosis), or keyword-level diagnosis (a dedicated skill, not yet built).
-version: 0.2.3
+version: 1.0.0
 ---
 
 # Ads Structure Analysis
