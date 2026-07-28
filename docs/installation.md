@@ -2,7 +2,7 @@
 
 完整走完 4 步：**获取 token → 配置 MCP → 安装 Skills → 验证**。全程约 5 分钟。
 
-> 前提：你需要一个**支持 MCP 的 AI 助手**。最简单、最推荐用 **Claude**（Desktop 应用或 Code CLI）；也支持 ChatGPT Codex、WorkBuddy、Cherry Studio、扣子 Coze、OpenClaw、Hermes、Cursor、Cline 等。
+> 前提：你需要一个**支持 MCP 的 AI 助手**。最简单、最推荐用 **WorkBuddy**（国内）或 **Claude**（海外，Desktop 应用或 Code CLI）；也支持 ChatGPT Codex、Cherry Studio、扣子 Coze、OpenClaw、Hermes、Cursor、Cline 等。
 
 ---
 
