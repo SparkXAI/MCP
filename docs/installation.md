@@ -1,4 +1,4 @@
-# SparkX MCP 安装说明
+# SparkX AI MCP 安装说明
 
 完整走完 4 步：**获取 token → 配置 MCP → 安装 Skills → 验证**。全程约 5 分钟。
 
@@ -28,7 +28,7 @@
 在能让 AI 自己动手配置的客户端（Claude、ChatGPT Codex、Cherry Studio、扣子 Coze、WorkBuddy 等）里，直接把下面这段发给它：
 
 ```text
-帮我配置 SparkX MCP
+帮我配置 SparkX AI MCP
 URL：https://mcp.sparkx.cn/mcp
 Token：<你的 token>
 配置完调 get_user_authorized_context 验证。
