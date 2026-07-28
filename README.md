@@ -1,25 +1,8 @@
 # SparkX MCP
 
-> Connect SparkX AI's Amazon advertising capabilities to your own AI assistant (Claude, ChatGPT, and more) via the Model Context Protocol.
-
 把 SparkX AI 的广告能力接进你自己的 AI Agent（Claude、ChatGPT 等），数据从此融入你的工作流——大白话查数据、做分析、算真账，还能和你自己的成本、利润、目标放在一起算。不用登录平台、不用导表、不用在系统之间来回切换。
 
 **当前版本 v1.0.0（数据查询，只读）**：什么都能查、什么都不改。「管」和「建」能力将在后续版本陆续开放。
-
----
-
-## 什么是 MCP？
-
-MCP（Model Context Protocol，模型上下文协议）是 Anthropic 推出并开源的开放标准，用来把 AI 助手和外部的数据、工具安全地连起来——可以理解成 **"AI 世界的 USB-C 接口"**：一套标准接口，接一次、到处能用。
-
-两个关键概念：
-
-| 术语 | 是什么 | 作用 |
-|------|--------|------|
-| **Tool（工具）** | MCP 服务端提供的具体能力，如"查广告效果""查实体配置""查操作日志" | AI 需要数据时自动挑选并调用，把结果取回来 |
-| **Skill（技能）** | 一套"给 AI 的方法论"：某类任务该看哪些数据、按什么步骤、输出成什么样 | 让 AI 遇到对应场景自动按成熟套路走，结果更准、更规范、可复用 |
-
-简单说：**Tool 决定 AI"能拿到什么数据"，Skill 决定 AI"把数据用得好不好"。**
 
 ---
 
@@ -79,7 +62,7 @@ Token：<你的 token>
 
 ## Skills
 
-没有 Skills，MCP 查询的出错率会明显上升。当前包含三个官方 Skill（当前版本 **1.0.0**，与 MCP Server 版本对应）：
+MCP 的 Tool 决定 AI"能拿到什么数据"，Skill 决定 AI"把数据用得好不好"——**没有 Skills，MCP 查询的出错率会明显上升**。当前包含三个官方 Skill（当前版本 **1.0.0**，与 MCP Server 版本对应）：
 
 | Skill | 对应 MCP Tool | 用途 |
 |-------|--------------|------|
