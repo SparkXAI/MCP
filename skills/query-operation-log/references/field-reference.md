@@ -1,0 +1,307 @@
+# Field Reference — `get_operation_log`
+
+## Parameter Details
+
+### entities
+
+Entity types (use carefully):
+- `campaign` - campaign
+- `adGroup` - ad group
+- `target` - targeting/keyword
+- `placement` - ad placement
+- `portfolio` - portfolio
+- `profile` - store
+- `aiGroup` - AI managed group
+- `productAd` - product ad
+- `audience` - audience targeting (excluded from the default "all entities" scan — must be requested explicitly)
+
+**Important**: entities strictly filters only direct operations on that entity type.
+- User says "what operations on this campaign" -> **do NOT** set entities
+- User says "only campaign-level operations themselves" -> set `entities: ["campaign"]`
+- Default (omitted) queries all entity types **except `audience`**
+
+### resourceIds
+
+Array, each item has `idEntity` (resource type) and `ids` (list of IDs):
+```json
+[
+  {"idEntity": "campaign", "ids": [123456, 789012]},
+  {"idEntity": "adGroup", "ids": [111222]}
+]
+```
+
+**`idEntity` enum values**:
+- `campaign` - campaign
+- `adGroup` - ad group
+- `keyword` - keyword
+- `target` - targeting
+- `placement` - placement
+- `aiGroup` - AI managed group
+- `portfolio` - portfolio
+- `productLine` - product line
+
+**`idType` rule** (optional, auto-inferred if omitted):
+- `amazon` (default): applies to campaign, adGroup, keyword, target, placement, portfolio — these use Amazon's own entity IDs
+- `increment`: applies to aiGroup, productLine — these use Xnurta's internal auto-increment IDs
+
+```json
+[{"idEntity": "aiGroup", "idType": "increment", "ids": [501, 502]}]
+```
+
+**Locating a resource by name first**: this tool takes IDs, not names. If the user describes an object by name (e.g. "campaign SP-T1 MAX-KW-Brands-solder", "keyword 'wireless earbuds' exact match"), first resolve it to an ID via `get_entity_metadata`:
+- campaign name -> `entity: "campaign", filters: {"campaignName": {"like": "%...%"}}` -> `campaignId`
+- keyword text + match type -> `entity: "target", filters: {"targetText": {"like": "%...%"}, "targetMatchType": "exact"}` -> `targetId`
+- ASIN -> `entity: "productAd", filters: {"asin": "..."}` -> `amazonAdId` / `campaignId`
+
+Then pass the resolved ID into `resourceIds`.
+
+### campaignTypes
+
+Campaign types:
+- `sponsoredProducts` - SP ads
+- `sponsoredBrands` - SB ads
+- `sponsoredDisplay` - SD ads
+
+### changeBy
+
+Operator filter. Always pass an object with explicit `operator` and `values`:
+```json
+{"operator": "IN", "values": ["ai", "manual"]}
+```
+Use `"operator": "NOT_IN"` to exclude values instead.
+
+Valid values:
+| User says | Value |
+|-----------|-------|
+| AI | ai |
+| Manual / user | manual |
+| Automation rule | automation |
+| AI custom rule | aiCustomRule |
+| Budget management | budgetManagement |
+| Lock ranking | lockRanking |
+| Amazon console | amazonConsole |
+| API | api |
+| Labels | labels |
+| System | system |
+| Specific user | user email address (pass as one of the `values`) |
+
+### actionType
+
+Action type filter (coarse-grained, 14 categories). Always pass an object with explicit `operator` and `values`:
+```json
+{"operator": "IN", "values": ["Bid Increased", "Bid Decreased"]}
+```
+
+Valid values:
+| User says | Value |
+|-----------|-------|
+| Added / created | Added |
+| Archived | Archived |
+| Paused | Paused |
+| Enabled | Enabled |
+| Bid increased | Bid Increased |
+| Bid decreased | Bid Decreased |
+| Budget increased | Budget Increased |
+| Budget decreased | Budget Decreased |
+| Placement increased | Placement Increased |
+| Placement decreased | Placement Decreased |
+| Other field changes | Other Fields Changed |
+| Bidding strategy | Bidding Strategy Setting |
+| Abnormal status | Abnormal Status Changed |
+| Bid adjustment setting | Bid Adjustment Setting |
+| AI group setting changed | AI Group Setting changed |
+
+### operationType
+
+Operation type filter (fine-grained). More precise than `actionType`. Always pass an object with explicit `operator` and `values`:
+```json
+{"operator": "IN", "values": ["Campaign Paused", "DailyBudget Increased"]}
+```
+
+⚠️ **Only use the exact string values listed below.** Do not invent or guess values outside this table.
+
+#### Complete operationType values by entity
+
+| Entity | operationType |
+|--------|---------------|
+| `profile` | `Update Profile DailyBudget` |
+| `campaign` | `Campaign Added` |
+| `campaign` | `Campaign Archived` |
+| `campaign` | `Campaign Enabled` |
+| `campaign` | `Campaign Paused` |
+| `campaign` | `Campaign Name Changed` |
+| `campaign` | `Campaign Out of Budget` |
+| `campaign` | `Campaign Ended` |
+| `campaign` | `StartDate Changed` |
+| `campaign` | `EndDate Changed` |
+| `campaign` | `DailyBudget Decreased` |
+| `campaign` | `DailyBudget Increased` |
+| `campaign` | `offAmazonBudgetControlStrategy Changed` |
+| `campaign` | `AudienceSegmentType Changed` |
+| `campaign` | `SiteAmazonBusinessAdjustment Decreased` |
+| `campaign` | `Bidding Strategy Down Only` |
+| `campaign` | `Bidding Strategy Fixed Bids` |
+| `campaign` | `Bidding Strategy Up And Down` |
+| `campaign` | `Bidding Strategy Rule-based Bidding` |
+| `campaign` | `Bid Adjustment None` |
+| `campaign` | `Bid Adjustment Automated` |
+| `campaign` | `Bid Adjustment Decreased` |
+| `campaign` | `Bid Adjustment Increased` |
+| `campaign` | `Campaign Label Changed` |
+| `adGroup` | `AdGroup Added` |
+| `adGroup` | `AdGroup Archived` |
+| `adGroup` | `AdGroup Enabled` |
+| `adGroup` | `AdGroup Paused` |
+| `adGroup` | `AdGroup Name Changed` |
+| `adGroup` | `AdGroup Bid Decreased` |
+| `adGroup` | `AdGroup Bid Increased` |
+| `adGroup` | `Bid Optimization For Conversions` |
+| `adGroup` | `Bid Optimization For Page Visits` |
+| `adGroup` | `Bid Optimization For Viewable Impressions` |
+| `adGroup` | `AdGroup Label Changed` |
+| `productAd` | `ASIN Added` |
+| `productAd` | `ASIN Archived` |
+| `productAd` | `ASIN Enabled` |
+| `productAd` | `ASIN Paused` |
+| `productAd` | `Asin Ineligible` |
+| `productAd` | `Asin Not Buyable` |
+| `productAd` | `Asin Out ot Stock` |
+| `productAd` | `Asin Not in Buybox` |
+| `productAd` | `Asin Missing Decoration` |
+| `productAd` | `Asin No Inventory` |
+| `productAd` | `Ad Added` |
+| `productAd` | `Ad Name Changed` |
+| `productAd` | `Ad Enabled` |
+| `productAd` | `Ad Paused` |
+| `productAd` | `Ad Archived` |
+| `target` | `Keyword Group Enabled` |
+| `target` | `Keyword Group Paused` |
+| `target` | `Keyword Group Added` |
+| `target` | `Keyword Group Bid Decreased` |
+| `target` | `Keyword Group Bid Increased` |
+| `target` | `Keyword Group Archived` |
+| `target` | `Theme Targeting Enabled` |
+| `target` | `Theme Targeting Paused` |
+| `target` | `Theme Targeting Bid Increased` |
+| `target` | `Theme Targeting Bid Decreased` |
+| `target` | `Theme Targeting Archived` |
+| `target` | `Theme Targeting Added` |
+| `target` | `Keyword Targeting Added` |
+| `target` | `Keyword Targeting Paused` |
+| `target` | `Keyword Targeting Enabled` |
+| `target` | `Keyword Targeting Archived` |
+| `target` | `Keyword Targeting Bid Increased` |
+| `target` | `Keyword Targeting Bid Decreased` |
+| `target` | `Product Targeting Added` |
+| `target` | `Product Targeting Paused` |
+| `target` | `Product Targeting Enabled` |
+| `target` | `Product Targeting Archived` |
+| `target` | `Product Targeting Bid Increased` |
+| `target` | `Product Targeting Bid Decreased` |
+| `target` | `Category Targeting Added` |
+| `target` | `Category Targeting Paused` |
+| `target` | `Category Targeting Enabled` |
+| `target` | `Category Targeting Archived` |
+| `target` | `Category Targeting Bid Increased` |
+| `target` | `Category Targeting Bid Decreased` |
+| `target` | `Automatic Targeting Added` |
+| `target` | `Automatic Targeting Paused` |
+| `target` | `Automatic Targeting Enabled` |
+| `target` | `Automatic Targeting Archived` |
+| `target` | `Automatic Targeting Bid Increased` |
+| `target` | `Automatic Targeting Bid Decreased` |
+| `target` | `Audience Targeting Added` |
+| `target` | `Audience Targeting Paused` |
+| `target` | `Audience Targeting Enabled` |
+| `target` | `Audience Targeting Archived` |
+| `target` | `Audience Targeting Bid Increased` |
+| `target` | `Audience Targeting Bid Decreased` |
+| `target` | `Negative Keyword Added` |
+| `target` | `Negative Keyword Paused` |
+| `target` | `Negative Keyword Enabled` |
+| `target` | `Negative Keyword Archived` |
+| `target` | `Negative Asin Added` |
+| `target` | `Negative Asin Enabled` |
+| `target` | `Negative Asin Paused` |
+| `target` | `Negative Asin Archived` |
+| `target` | `Negative Brand Added` |
+| `target` | `Negative Brand Enabled` |
+| `target` | `Negative Brand Paused` |
+| `target` | `Negative Brand Archived` |
+| `target` | `Negative Product Added` |
+| `target` | `AudienceId Changed` |
+| `target` | `AudienceBidPercentage Changed` |
+| `placement` | `OTHERADJUSTMENT Decreased` |
+| `placement` | `OTHERADJUSTMENT Increased` |
+| `placement` | `DETAILPAGEADJUSTMENT Increased` |
+| `placement` | `DETAILPAGEADJUSTMENT Decreased` |
+| `placement` | `HOMEADJUSTMENT Increased` |
+| `placement` | `HOMEADJUSTMENT Decreased` |
+| `placement` | `TopSearchAdjustment Decreased` |
+| `placement` | `TopSearchAdjustment Increased` |
+| `placement` | `ProductPageAdjustment Decreased` |
+| `placement` | `ProductPageAdjustment Increased` |
+| `placement` | `RestOfSearchAdjustment Decreased` |
+| `placement` | `RestOfSearchAdjustment Increased` |
+| `portfolio` | `Portfolio Changed` |
+| `portfolio` | `Portfolio Name Changed` |
+| `portfolio` | `Portfolio EndDate Changed` |
+| `portfolio` | `Portfolio StartDate Changed` |
+| `portfolio` | `Budget Cap Decreased` |
+| `portfolio` | `Budget Cap Increased` |
+| `portfolio` | `Budget Type Changed` |
+| `portfolio` | `Portfolio Ended` |
+| `portfolio` | `Portfolio Out of Budget` |
+| `portfolio` | `Portfolio Added` |
+
+Use `actionType` for broad filtering; use `operationType` when you need precise control over specific entity+action combinations.
+
+### targetTypes
+
+Targeting type filter. Narrows target entity operations to specific targeting types.
+
+Valid values:
+- `product` - product targeting
+- `keyword` - keyword targeting
+- `automatic` - automatic targeting
+- `category` - category targeting
+- `theme` - theme targeting
+- `keywordGroup` - keyword group
+- `negativeKeyword` - negative keyword
+- `negativeAsin` - negative ASIN
+- `negativeBrand` - negative brand
+
+### placementTypes
+
+Placement type filter. Narrows placement operations to specific placement types.
+
+**Confirmed complete enum — exactly these 4 values, no others**: `detailPageAdjustment`, `homeAdjustment`, `topSearchAdjustment`, `restOfSearchAdjustment`. Do not guess at additional values or try to infer more from `changeField` — this list is authoritative.
+
+### ChangeLogVO Field Reference
+
+| Field | Type | Description |
+|---|---|---|
+| entity | string | Entity type: `campaign`/`adGroup`/`target`/`aiGroup`/`portfolio`/`placement`/`profile`/`productAd` |
+| entityName | string | Entity display name |
+| amazonEntityId | long | Amazon-side entity ID |
+| entityId | long | Xnurta-side entity ID |
+| operationType | string | Fine-grained operation type (e.g. `DailyBudget Increased`) |
+| profileId | long | Profile ID |
+| aiGroupName | string | AI managed group name (present on aiGroup-related logs) |
+| amazonCampaignId | long | Amazon campaign ID |
+| campaignName | string | Campaign name |
+| campaignType | string | Campaign type |
+| amazonAdGroupId | long | Amazon ad group ID (null if not applicable) |
+| adGroupName | string | Ad group name (null if not applicable) |
+| changeField | string | Which field changed |
+| previousValue | string | Value before the change |
+| newValue | string | Value after the change |
+| countryCode | string | Country code |
+| **currencyCode** | string | **Currency of this row's monetary change** (e.g. `"USD"`/`"JPY"`), mapped from `countryCode`. Always local currency — there is no cross-profile USD conversion for logs |
+| createdDate | string | Operation timestamp, UTC, `yyyy-MM-dd HH:mm:ss` |
+| changedBy | string | Who made the change: `ai`/`manual`/`automation`/etc, or a user identifier |
+| aiGroupScheduleId | long | Schedule ID (present on aiGroup-related logs) |
+
+---
+
+**Enum i18n**: When presenting enum values to the user or translating between API values and display labels, consult [`enum-i18n.md`](enum-i18n.md) for the complete ZH/EN/JA mapping of all enum fields documented above.
