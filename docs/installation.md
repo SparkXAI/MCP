@@ -116,20 +116,27 @@ mcp_servers:
 
 ---
 
-## 第三步 · 安装 Skills（强烈推荐）
+## 第三步 · 安装 Skills
 
-> 没有 Skills，MCP 查询的出错率会明显上升。
+Skills 在本仓库 [`skills/`](../skills/) 目录，分两类：
 
-Skills 在本仓库 [`skills/`](../skills/) 目录（或从 [Releases](../../../releases) 下载打包版），共三个：
+**必装（3 个）**——没有它们，MCP 查询的出错率会明显上升：
 
 - `query-ads-performance` — 广告效果查询
 - `query-entity-metadata` — 实体配置查询
 - `query-operation-log` — 操作日志查询
 
+**可选（4 个）**——进阶分析场景，装完必装的再按需添加（位于 [`skills/optional/`](../skills/optional/)）：
+
+- `weekly-ads-report` — 广告周报
+- `monthly-ads-report` — 广告月报
+- `ads-structure-analysis` — 广告结构分析
+- `product-diagnosis` — 商品诊断
+
 按你的助手选安装方式：
 
-- **能让 AI 自己动手的助手**（Claude Code、ChatGPT Codex、Cursor 等）：把 Skills 包发给它，说一句"帮我把这三个 Skill 装上"，它会自动装好。
-- **聊天 / 界面类助手**（Claude 网页版或桌面 App、Cherry Studio、扣子 Coze 等）：在各自设置里手动添加（以 Claude 为例：设置 → Skills → 上传，逐个加上三个）。
+- **能让 AI 自己动手的助手**（Claude Code、ChatGPT Codex、Cursor 等）：把 Skill 目录发给它，说一句"帮我把必装的三个 Skill 装上"，可选 Skills 按需加装。
+- **聊天 / 界面类助手**（Claude 网页版或桌面 App、Cherry Studio、扣子 Coze 等）：在各自设置里手动添加（以 Claude 为例：设置 → Skills → 上传，逐个添加）。
 
 ---
 

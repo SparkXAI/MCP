@@ -62,7 +62,9 @@ Token：<你的 token>
 
 ## Skills
 
-MCP 的 Tool 决定 AI"能拿到什么数据"，Skill 决定 AI"把数据用得好不好"——**没有 Skills，MCP 查询的出错率会明显上升**。当前包含三个官方 Skill（当前版本 **1.0.0**，与 MCP Server 版本对应）：
+MCP 的 Tool 决定 AI"能拿到什么数据"，Skill 决定 AI"把数据用得好不好"。官方 Skills 分两类：
+
+**必装（3 个）**——基础查询能力，**没有它们，MCP 查询的出错率会明显上升**：
 
 | Skill | 对应 MCP Tool | 用途 |
 |-------|--------------|------|
@@ -70,12 +72,21 @@ MCP 的 Tool 决定 AI"能拿到什么数据"，Skill 决定 AI"把数据用得�
 | [query-entity-metadata](skills/query-entity-metadata/) | `get_entity_metadata` | 查询实体配置：广告活动 / 广告组 / 投放 / ASIN / 托管组的名称、状态、设置 |
 | [query-operation-log](skills/query-operation-log/) | `get_operation_log` | 查询操作日志：人工与 AI 的调价、调预算、启停记录 |
 
+**可选（4 个）**——进阶分析场景，装完必装 Skills 后按需添加：
+
+| Skill | 用途 |
+|-------|------|
+| [weekly-ads-report](skills/optional/weekly-ads-report/) | 广告周报：KPI 环比、7 天趋势、异常摘要、Top 变化榜、下周行动建议 |
+| [monthly-ads-report](skills/optional/monthly-ads-report/) | 广告月报：全月 KPI（环比 + 同比）、结构拆解、商品与关键词分析 |
+| [ads-structure-analysis](skills/optional/ads-structure-analysis/) | 广告结构分析：按广告类型 / 站点 / 组合等维度定位结构错配 |
+| [product-diagnosis](skills/optional/product-diagnosis/) | 商品诊断：ASIN 健康度分层、变体对比、去留优化建议 |
+
 **安装方式**（任选其一）：
 
-- **Claude Code / Codex / Cursor 等**：把 [Releases](../../releases) 里的 Skills 包发给 AI，说一句"帮我把这三个 Skill 装上"。
+- **Claude Code / Codex / Cursor 等**：把 [`skills/`](skills/) 目录发给 AI，说一句"帮我把必装的三个 Skill 装上"，可选 Skills 按需加装。
 - **Claude 网页版 / 桌面 App 等界面类助手**：设置 → Skills → 上传，逐个添加。
 
-版本历史见 [CHANGELOG.md](CHANGELOG.md)。
+各 Skill 版本见 [skills/manifest.json](skills/manifest.json)，版本历史见 [CHANGELOG.md](CHANGELOG.md)。
 
 ---
 

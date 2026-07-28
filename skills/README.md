@@ -1,6 +1,11 @@
 # SparkX MCP Skills
 
-三个官方 Skill，配合 SparkX MCP 使用。**没有 Skills，MCP 查询的出错率会明显上升**——强烈建议安装。
+配合 SparkX MCP 使用的官方 Skills，分两类：
+
+- **必装（3 个）**：基础查询能力。**没有它们，MCP 查询的出错率会明显上升**，请务必安装。
+- **可选（4 个）**：面向具体分析场景的进阶玩法，按需安装。
+
+## 必装 Skills
 
 | Skill | 版本 | 对应 MCP Tool | 所需 Scope | 用途 |
 |-------|------|--------------|-----------|------|
@@ -8,9 +13,20 @@
 | [query-entity-metadata](query-entity-metadata/) | 1.0.0 | `get_entity_metadata` | `amazon_sa:ads_configuration:read` | 查询实体配置：广告活动 / 广告组 / 投放 / ASIN / 托管组的名称、状态、设置 |
 | [query-operation-log](query-operation-log/) | 1.0.0 | `get_operation_log` | `amazon_sa:ads_logs:read` | 查询操作日志：人工与 AI 的调价、调预算、启停记录 |
 
+## 可选 Skills
+
+基于上面三个必装 Skill 的查询能力做进阶分析，装了必装 Skills 之后即可按需添加：
+
+| Skill | 版本 | 用途 |
+|-------|------|------|
+| [weekly-ads-report](optional/weekly-ads-report/) | 0.9.4 | 广告周报：KPI 环比卡片、7 天趋势、异常摘要、Top 变化榜、下周行动建议 |
+| [monthly-ads-report](optional/monthly-ads-report/) | 0.5.6 | 广告月报：全月 KPI（环比 + 同比）、结构拆解、商品与关键词分析、下月建议 |
+| [ads-structure-analysis](optional/ads-structure-analysis/) | 0.2.3 | 广告结构分析：按广告类型 / 站点 / 组合 / 工作日维度拆解花费与效率，定位结构错配 |
+| [product-diagnosis](optional/product-diagnosis/) | 0.1.11 | 商品诊断：ASIN 健康度分层、变体对比、问题商品诊断卡、去留优化建议 |
+
 ## 版本
 
-- **程序读取**：[`manifest.json`](manifest.json) 是机器可读的版本清单（含各 skill 的 version、对应 tool、scope 和最新打包下载地址），可通过固定地址获取：
+- **程序读取**：[`manifest.json`](manifest.json) 是机器可读的版本清单（含各 skill 的 version、必装/可选标记、对应 tool 和 scope），可通过固定地址获取：
 
   ```
   https://raw.githubusercontent.com/SparkXAI/MCP/main/skills/manifest.json
@@ -21,15 +37,22 @@
 
 ## 安装
 
-- **能让 AI 自己动手的助手**（Claude Code、ChatGPT Codex、Cursor 等）：把本目录（或 [Releases](../../../releases) 里的打包版）发给它，说一句"帮我把这三个 Skill 装上"。
-- **聊天 / 界面类助手**（Claude 网页版或桌面 App、Cherry Studio、扣子 Coze 等）：在各自设置里手动添加（以 Claude 为例：设置 → Skills → 上传，逐个加上三个）。
+- **能让 AI 自己动手的助手**（Claude Code、ChatGPT Codex、Cursor 等）：把 Skill 目录发给它，说一句"帮我装上"。先装必装的三个，再按需加可选的。
+- **聊天 / 界面类助手**（Claude 网页版或桌面 App、Cherry Studio、扣子 Coze 等）：在各自设置里手动添加（以 Claude 为例：设置 → Skills → 上传，逐个添加）。
 
 ## 目录结构
 
-每个 Skill 是一个独立目录：
+```
+skills/
+├── manifest.json              # 机器可读版本清单
+├── query-ads-performance/     # 必装
+├── query-entity-metadata/     # 必装
+├── query-operation-log/       # 必装
+└── optional/                  # 可选
+    ├── weekly-ads-report/
+    ├── monthly-ads-report/
+    ├── ads-structure-analysis/
+    └── product-diagnosis/
+```
 
-```
-query-ads-performance/
-├── SKILL.md          # Skill 主文件（含 name / version / description 与方法论）
-└── references/       # 字段参考、枚举值、示例查询等
-```
+每个 Skill 是一个独立目录，含 `SKILL.md`（name / version / description 与方法论）和 `references/`（字段参考、示例查询等）。

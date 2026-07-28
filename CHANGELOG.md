@@ -1,6 +1,17 @@
 # Changelog
 
-本文件记录 SparkX MCP Skills 与配套文档的版本变化。MCP Server 本身的能力规划见 [README · Roadmap](README.md#roadmap)。
+本文件记录 SparkX MCP Skills 与配套文档的版本变化。
+
+## [Unreleased]
+
+### 新增
+
+- 4 个**可选 Skills**（位于 `skills/optional/`，装完必装 Skills 后按需添加）：
+  - **weekly-ads-report** `0.9.4` — 广告周报
+  - **monthly-ads-report** `0.5.6` — 广告月报
+  - **ads-structure-analysis** `0.2.3` — 广告结构分析
+  - **product-diagnosis** `0.1.11` — 商品诊断
+- `skills/manifest.json` 增加 `required` 字段区分必装 / 可选
 
 ## [1.0.0] - 2026-07-28
 
