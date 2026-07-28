@@ -8,7 +8,16 @@
 | [query-entity-metadata](query-entity-metadata/) | 1.0.0 | `get_entity_metadata` | `amazon_sa:ads_configuration:read` | 查询实体配置：广告活动 / 广告组 / 投放 / ASIN / 托管组的名称、状态、设置 |
 | [query-operation-log](query-operation-log/) | 1.0.0 | `get_operation_log` | `amazon_sa:ads_logs:read` | 查询操作日志：人工与 AI 的调价、调预算、启停记录 |
 
-每个 Skill 的版本号记录在其 `SKILL.md` frontmatter 的 `version` 字段，整体变更历史见 [CHANGELOG.md](../CHANGELOG.md)。
+## 版本
+
+- **程序读取**：[`manifest.json`](manifest.json) 是机器可读的版本清单（含各 skill 的 version、对应 tool、scope 和最新打包下载地址），可通过固定地址获取：
+
+  ```
+  https://raw.githubusercontent.com/SparkXAI/MCP/main/skills/manifest.json
+  ```
+
+- **人工查看**：每个 Skill 的版本号在其 `SKILL.md` frontmatter 的 `version` 字段；整体变更历史见 [CHANGELOG.md](../CHANGELOG.md)。
+- 发布新版本时，`manifest.json` 与 frontmatter 会同步更新，并打对应的 git tag / GitHub Release。
 
 ## 安装
 
