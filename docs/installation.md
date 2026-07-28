@@ -1,5 +1,7 @@
 # SparkX AI MCP 安装说明
 
+> **🤖 致 AI Agent：如果你正在替用户执行本文档的配置，"配置 MCP"和"安装 Skills"是一个整体任务。** 完成 MCP 连接验证后，你必须继续安装 3 个必装 Skills（[`skills/`](../skills/) 目录，无需询问用户），然后逐个介绍 [`skills/optional/`](../skills/optional/) 下的 4 个可选 Skills 并询问用户是否安装。只配置连接不装 Skills 视为任务未完成。
+
 完整走完 4 步：**获取 token → 配置 MCP → 安装 Skills → 验证**。全程约 5 分钟。
 
 > 前提：你需要一个**支持 MCP 的 AI 助手**。最简单、最推荐用 **WorkBuddy**（国内）或 **Claude**（海外，Desktop 应用或 Code CLI）；也支持 ChatGPT Codex、Cherry Studio、扣子 Coze、OpenClaw、Hermes、Cursor、Cline 等。
@@ -28,13 +30,16 @@
 在能让 AI 自己动手配置的客户端（Claude、ChatGPT Codex、Cherry Studio、扣子 Coze、WorkBuddy 等）里，直接把下面这段发给它：
 
 ```text
-帮我配置 SparkX AI MCP
-URL：https://mcp.sparkx.cn/mcp
-Token：<你的 token>
-配置完调 get_user_authorized_context 验证。
+帮我配置 SparkX AI MCP 并安装配套 Skills，按顺序完成：
+1. 添加 MCP server：URL https://mcp.sparkx.cn/mcp（Streamable HTTP），
+   请求头 Authorization: Bearer <你的 token>
+2. 调用 get_user_authorized_context 验证，返回店铺列表即成功
+3. 从 https://github.com/SparkXAI/MCP 的 skills/ 目录安装 3 个必装 Skills：
+   query-ads-performance、query-entity-metadata、query-operation-log
+4. 介绍 skills/optional/ 下的 4 个可选 Skills 并问我是否安装
 ```
 
-它会自动配好并验证，返回你授权的店铺列表就说明成功。
+它会自动配好、验证并装好必装 Skills，返回你授权的店铺列表就说明连接成功。
 
 - **Claude**：打开 Claude → 切到 **Code 标签页** → 粘贴上面这段。
 - **ChatGPT Codex**：直接把这段发给 Codex（它会写进 `~/.codex/config.toml`）。
@@ -43,6 +48,8 @@ Token：<你的 token>
 若客户端不支持让 AI 代配，按下方「手动配置」在设置里添加。
 
 ### 方式二 · 手动配置
+
+> ⚠️ **配置完成 ≠ 安装完成**：添加 MCP server 后，务必继续 [第三步 · 安装 Skills](#第三步--安装-skills)。必装的 3 个 Skills 直接决定查询准确率。
 
 #### Claude Code CLI / Desktop 的 Code 标签页
 
