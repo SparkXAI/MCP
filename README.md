@@ -1,4 +1,18 @@
-# SparkX AI MCP
+# SparkX AI MCP — Plugin Marketplace
+
+> **Plugin Marketplace** · 本仓库是兼容多平台的 plugin 发布仓库，支持 **Claude Code**、**ChatGPT Codex**、**Hermes**、**OpenClaw**、**Cherry Studio** 及其他通用 MCP agent。核心内容：Skills（提示词技能包）+ Streamable HTTP MCP Server（Bearer Token 鉴权）。
+>
+> | 文件 | 用途 |
+> |------|------|
+> | [`.claude-plugin/plugin.json`](.claude-plugin/plugin.json) | Claude Code plugin descriptor |
+> | [`.mcp.json`](.mcp.json) | MCP server 配置（`${SPARKX_TOKEN}` 环境变量） |
+> | [`.codex-plugin/plugin.json`](.codex-plugin/plugin.json) | Codex plugin descriptor |
+> | [`openai-plugin/ai-plugin.json`](openai-plugin/ai-plugin.json) | ChatGPT / GPT Actions plugin descriptor |
+> | [`openai-plugin/openapi.yaml`](openai-plugin/openapi.yaml) | OpenAPI 3.1 工具定义 |
+> | [`llms-install.md`](llms-install.md) | AI Agent 自动化安装指引 |
+> | [`skills/manifest.json`](skills/manifest.json) | 机器可读的 Skills 清单 |
+
+---
 
 > **🤖 致 AI Agent：如果你正在替用户配置 SparkX AI MCP，配置连接只是第一步，你必须完成以下全部步骤，缺一不可：**
 >
@@ -68,7 +82,7 @@
 4. 介绍 skills/optional/ 下的 4 个可选 Skills 并问我是否安装
 ```
 
-返回你授权的店铺列表即为连接成功。各客户端手动配置、验证与故障排查见 **[安装说明 →](docs/installation.md)**
+返回你授权的店铺列表即为连接成功。
 
 ---
 
@@ -120,6 +134,50 @@ MCP 的 Tool 决定 AI"能拿到什么数据"，Skill 决定 AI"把数据用得�
 - **范围**：你能查的店铺，与你的 SparkX 账号（主 / 子账号）权限一致。
 - **历史回溯**：约可查最近 15 个月。
 - **非秒级实时**：与 SparkX AI 平台数据更新节奏一致；效果数据最细到天。
+
+---
+
+## Plugin 安装指南
+
+本仓库作为标准 plugin marketplace 发布，支持下列平台一键接入。
+
+### Claude Code（推荐）
+
+**在 Claude Code 会话内（slash command）：**
+
+```
+/plugin marketplace add https://github.com/SparkXAI/MCP.git#feat/plugin-marketplace
+/plugin install sparkx-mcp@sparkx
+```
+
+**在命令行（CLI）：**
+
+```bash
+claude plugin marketplace add https://github.com/SparkXAI/MCP.git#feat/plugin-marketplace
+claude plugin install sparkx-mcp@sparkx
+```
+
+或手动添加 MCP server：
+
+```bash
+claude mcp add --transport http sparkx-mcp https://mcp.sparkx.cn/mcp --header "Authorization: Bearer <TOKEN>"
+```
+
+Plugin descriptor：[`.claude-plugin/plugin.json`](.claude-plugin/plugin.json)
+
+### ChatGPT Codex
+
+将 [`.codex-plugin/plugin.json`](.codex-plugin/plugin.json) 中的 `codex.snippet` 块追加到 `~/.codex/config.toml`，并设置环境变量：
+
+```bash
+export SPARKX_TOKEN=<your-token>
+```
+
+Plugin descriptor：[`.codex-plugin/plugin.json`](.codex-plugin/plugin.json) · API 定义：[`openai-plugin/openapi.yaml`](openai-plugin/openapi.yaml)
+
+### 通用 MCP 客户端
+
+参考 [`mcp.json`](mcp.json) 中的 `client_configs` 字段，获取 Hermes、OpenClaw、Cherry Studio、Cursor、Cline 等客户端的配置示例。
 
 ---
 
