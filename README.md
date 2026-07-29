@@ -7,9 +7,6 @@
 > | [`.claude-plugin/plugin.json`](.claude-plugin/plugin.json) | Claude Code plugin descriptor |
 > | [`.mcp.json`](.mcp.json) | MCP server 配置（`${SPARKX_TOKEN}` 环境变量） |
 > | [`.codex-plugin/plugin.json`](.codex-plugin/plugin.json) | Codex plugin descriptor |
-> | [`openai-plugin/ai-plugin.json`](openai-plugin/ai-plugin.json) | ChatGPT / GPT Actions plugin descriptor |
-> | [`openai-plugin/openapi.yaml`](openai-plugin/openapi.yaml) | OpenAPI 3.1 工具定义 |
-> | [`llms-install.md`](llms-install.md) | AI Agent 自动化安装指引 |
 > | [`skills/manifest.json`](skills/manifest.json) | 机器可读的 Skills 清单 |
 
 ---
