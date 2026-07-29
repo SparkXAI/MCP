@@ -47,7 +47,35 @@
 
 若客户端不支持让 AI 代配，按下方「手动配置」在设置里添加。
 
-### 方式二 · 手动配置
+### 方式二 · Plugin 安装
+
+#### Claude Code
+
+**在 Claude Code 会话内（slash command）：**
+
+```
+/plugin marketplace add https://github.com/SparkXAI/MCP.git#feat/plugin-marketplace
+/plugin install sparkx-mcp@sparkx
+```
+
+**在命令行（CLI）：**
+
+```bash
+claude plugin marketplace add https://github.com/SparkXAI/MCP.git#feat/plugin-marketplace
+claude plugin install sparkx-mcp@sparkx
+```
+
+Claude Code 会自动拉取插件、配置 MCP server 并加载 Skills。之后设置环境变量即可（见下方[环境变量配置](#环境变量配置sparkx_token)）。
+
+#### Codex
+
+```bash
+codex plugin marketplace add https://github.com/SparkXAI/MCP.git#feat/plugin-marketplace
+```
+
+然后在 Codex 的 Plugins 面板中安装 `sparkx-mcp`。
+
+### 方式三 · 手动配置
 
 > ⚠️ **配置完成 ≠ 安装完成**：添加 MCP server 后，务必继续 [第三步 · 安装 Skills](#第三步--安装-skills)。必装的 3 个 Skills 直接决定查询准确率。
 
@@ -111,7 +139,49 @@ mcp_servers:
 
 在客户端的 MCP 设置里添加一个远程 / Streamable HTTP server，填上面的 URL 和 `Authorization: Bearer <你的TOKEN>` 请求头即可。
 
-### 验证连通性
+---
+
+### 环境变量配置（SPARKX_TOKEN）
+
+部分客户端（Claude Code Plugin、Codex、Hermes 等）从环境变量 `SPARKX_TOKEN` 读取 token，推荐提前设置好。
+
+#### macOS / Linux
+
+临时（当前终端会话有效）：
+
+```bash
+export SPARKX_TOKEN=<你的token>
+```
+
+永久（写入 shell 配置文件）：
+
+```bash
+# zsh（macOS 默认）
+echo 'export SPARKX_TOKEN=<你的token>' >> ~/.zshrc && source ~/.zshrc
+
+# bash
+echo 'export SPARKX_TOKEN=<你的token>' >> ~/.bashrc && source ~/.bashrc
+```
+
+#### Windows
+
+临时（当前 PowerShell 会话有效）：
+
+```powershell
+$env:SPARKX_TOKEN = "<你的token>"
+```
+
+永久（写入用户环境变量，重启终端后生效）：
+
+```powershell
+[System.Environment]::SetEnvironmentVariable("SPARKX_TOKEN", "<你的token>", "User")
+```
+
+或通过图形界面：「系统属性」→「高级」→「环境变量」→「用户变量」→「新建」，变量名填 `SPARKX_TOKEN`，变量值填你的 token。
+
+> ⚠️ Token 包含完整权限凭证，不要写入版本控制仓库，不要明文粘贴到聊天记录里。
+
+
 
 让助手调用 `get_user_authorized_context`：
 
