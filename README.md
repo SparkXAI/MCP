@@ -150,14 +150,14 @@ MCP 的 Tool 决定 AI"能拿到什么数据"，Skill 决定 AI"把数据用得�
 **在 Claude Code 会话内（slash command）：**
 
 ```
-/plugin marketplace add https://github.com/SparkXAI/MCP.git#feat/plugin-marketplace
+/plugin marketplace add SparkXAI/MCP
 /plugin install sparkx-mcp@sparkx
 ```
 
 **在命令行（CLI）：**
 
 ```bash
-claude plugin marketplace add https://github.com/SparkXAI/MCP.git#feat/plugin-marketplace
+claude plugin marketplace add SparkXAI/MCP
 claude plugin install sparkx-mcp@sparkx
 ```
 

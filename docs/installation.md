@@ -54,14 +54,14 @@
 **在 Claude Code 会话内（slash command）：**
 
 ```
-/plugin marketplace add https://github.com/SparkXAI/MCP.git#feat/plugin-marketplace
+/plugin marketplace add SparkXAI/MCP
 /plugin install sparkx-mcp@sparkx
 ```
 
 **在命令行（CLI）：**
 
 ```bash
-claude plugin marketplace add https://github.com/SparkXAI/MCP.git#feat/plugin-marketplace
+claude plugin marketplace add SparkXAI/MCP
 claude plugin install sparkx-mcp@sparkx
 ```
 
@@ -70,7 +70,7 @@ Claude Code 会自动拉取插件、配置 MCP server 并加载 Skills。之后�
 #### Codex
 
 ```bash
-codex plugin marketplace add https://github.com/SparkXAI/MCP.git#feat/plugin-marketplace
+codex plugin marketplace add SparkXAI/MCP
 ```
 
 然后在 Codex 的 Plugins 面板中安装 `sparkx-mcp`。
