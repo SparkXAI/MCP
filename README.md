@@ -86,7 +86,7 @@ Claude Code 和 Codex 用户可通过 plugin marketplace 一键安装，自动�
 4. 介绍 skills/optional/ 下的 4 个可选 Skills 并问我是否安装
 ```
 
-返回你授权的店铺列表即为连接成功。
+返回你授权的店铺列表即为连接成功。各客户端手动配置、验证与故障排查见 **[安装说明 →](docs/installation.md)**
 
 ---
 
