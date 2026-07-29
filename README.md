@@ -68,6 +68,10 @@
 3. **安装 Skills**——本仓库 [`skills/`](skills/) 目录，强烈推荐安装，显著降低查询出错率。
 4. **开始查询**——用自然语言提问。
 
+### Plugin 安装（Claude Code / Codex）
+
+Claude Code 和 Codex 用户可通过 plugin marketplace 一键安装，自动完成 MCP 配置和 Skills 加载，详见 **[安装说明 · 方式二](docs/installation.md#方式二--plugin-安装)**。
+
 ### 一句话配置（推荐）
 
 在支持 AI 自主配置的客户端（Claude、ChatGPT Codex、Cherry Studio 等）里直接发送：
