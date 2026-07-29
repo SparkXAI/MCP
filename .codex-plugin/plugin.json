@@ -1,0 +1,35 @@
+{
+  "name": "sparkx-mcp",
+  "version": "1.0.0",
+  "description": "Amazon Sponsored Ads intelligence for AI agents: query ad performance, entity metadata, and operation logs.",
+  "author": {
+    "name": "SparkX"
+  },
+  "homepage": "https://github.com/SparkXAI/MCP",
+  "repository": "https://github.com/SparkXAI/MCP",
+  "license": "MIT",
+  "keywords": [
+    "amazon-ads",
+    "sponsored-ads",
+    "advertising",
+    "acos",
+    "roas",
+    "campaign",
+    "mcp",
+    "sparkx",
+    "analytics"
+  ],
+  "mcpServers": "./.mcp.json",
+  "codex": {
+    "config_path": "~/.codex/config.toml",
+    "snippet": {
+      "mcp_servers": {
+        "sparkx-mcp": {
+          "url": "https://mcp.sparkx.cn/mcp",
+          "bearer_token_env_var": "SPARKX_TOKEN",
+          "http_headers": {}
+        }
+      }
+    }
+  }
+}
