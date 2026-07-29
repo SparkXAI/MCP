@@ -205,7 +205,7 @@ Amount-bearing fields (e.g. `previousValue`/`newValue` for a `dailyBudget` chang
 - **Append a `%` sign when presenting the value to the user**: if the tool returns `"ACOS": 17.61`, say "ACOS is 17.61%". If `targetAcos` returns `35`, say "target ACOS is 35%".
 - When constructing a filter, pass the threshold on this same ×100 scale, as a plain number with **no `%` in the JSON**: `{"ACOS": {"<": 20}}` for "ACOS under 20%" — not `{"ACOS": {"<": 0.2}}` (which means "under 0.2%", almost never intended).
 
-### Tier 2 — Unconfirmed scale (needs backend/product confirmation)
+### Tier 2 — Unconfirmed scale (needs product team confirmation)
 
 `TACOS`, `ShippedTACOS`, `OrderedTACOS`, `NTBOrdersRate`, `NTBUnitsRate`, `NTBSalesRate`, `ViewableImpressionsRate`, `AdsSalesRate`, `AdsOrdersRate`, `AdsUnitsRate`, `AdsSalesSameSKURate`, `AdsOrdersSameSKURate`, `Video5SecondViewRate` — the platform spec gives only a metric name for these, with **no formula and no example value**, so their scale is not independently verified the way Tier 1 is.
 
@@ -213,7 +213,7 @@ Amount-bearing fields (e.g. `previousValue`/`newValue` for a `dailyBudget` chang
 
 For all Tier 2 fields:
 - Relay the tool's raw value exactly as returned — do not assume it's a percentage, do not multiply/divide by 100, and do not append a `%` sign, since you don't actually know if the number is already ×100-scaled or a 0–1 ratio.
-- Do not construct filters against these fields using an assumed percentage scale (e.g. don't guess that `20` means "20%") — if the user wants to filter on one of these, either ask what scale they mean or note the ambiguity, and flag to SparkX AI backend/product that this field's scale needs explicit confirmation before the skill can give guidance as confident as Tier 1's.
+- Do not construct filters against these fields using an assumed percentage scale (e.g. don't guess that `20` means "20%") — if the user wants to filter on one of these, either ask what scale they mean or note the ambiguity, and flag it to the SparkX AI product team for explicit confirmation before the skill can give guidance as confident as Tier 1's.
 
 `ROAS`, `CPC`, `CPA` are **not percentages at all** — they're plain ratios/currency-per-unit values (e.g. `ROAS: 5.68`), not covered by either tier.
 
