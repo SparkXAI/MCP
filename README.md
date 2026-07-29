@@ -7,6 +7,7 @@
 > | [`.claude-plugin/plugin.json`](.claude-plugin/plugin.json) | Claude Code plugin descriptor |
 > | [`.mcp.json`](.mcp.json) | MCP server 配置（`${SPARKX_TOKEN}` 环境变量） |
 > | [`.codex-plugin/plugin.json`](.codex-plugin/plugin.json) | Codex plugin descriptor |
+> | [`docs/installation.md`](docs/installation.md) | 详细安装说明（手动配置、plugin 安装、故障排查） |
 > | [`skills/manifest.json`](skills/manifest.json) | 机器可读的 Skills 清单 |
 
 ---
