@@ -175,11 +175,11 @@ Plugin descriptor：[`.claude-plugin/plugin.json`](.claude-plugin/plugin.json)
 export SPARKX_TOKEN=<your-token>
 ```
 
-Plugin descriptor：[`.codex-plugin/plugin.json`](.codex-plugin/plugin.json) · API 定义：[`openai-plugin/openapi.yaml`](openai-plugin/openapi.yaml)
+Plugin descriptor：[`.codex-plugin/plugin.json`](.codex-plugin/plugin.json)
 
 ### 通用 MCP 客户端
 
-参考 [`mcp.json`](mcp.json) 中的 `client_configs` 字段，获取 Hermes、OpenClaw、Cherry Studio、Cursor、Cline 等客户端的配置示例。
+参考[安装说明 · 方式三 · 手动配置](docs/installation.md#方式三--手动配置)，获取 Hermes、OpenClaw、Cherry Studio、Cursor、Cline 等客户端的配置示例。
 
 ---
 
