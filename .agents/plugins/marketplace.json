@@ -1,0 +1,21 @@
+{
+  "name": "sparkx-ai",
+  "interface": {
+    "displayName": "SparkX AI"
+  },
+  "plugins": [
+    {
+      "name": "sparkx-ai-mcp",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/SparkXAI/MCP.git",
+        "ref": "main"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Data & Analytics"
+    }
+  ]
+}

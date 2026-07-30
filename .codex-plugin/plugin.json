@@ -1,9 +1,9 @@
 {
-  "name": "sparkx-mcp",
+  "name": "sparkx-ai-mcp",
   "version": "1.0.0",
   "description": "Amazon Sponsored Ads intelligence for AI agents: query ad performance, entity metadata, and operation logs.",
   "author": {
-    "name": "SparkX"
+    "name": "SparkX AI"
   },
   "homepage": "https://github.com/SparkXAI/MCP",
   "repository": "https://github.com/SparkXAI/MCP",
@@ -16,20 +16,26 @@
     "roas",
     "campaign",
     "mcp",
-    "sparkx",
+    "sparkx-ai",
     "analytics"
   ],
+  "skills": "./skills/",
   "mcpServers": "./.mcp.json",
-  "codex": {
-    "config_path": "~/.codex/config.toml",
-    "snippet": {
-      "mcp_servers": {
-        "sparkx-mcp": {
-          "url": "https://mcp.sparkx.cn/mcp",
-          "bearer_token_env_var": "SPARKX_TOKEN",
-          "http_headers": {}
-        }
-      }
-    }
+  "interface": {
+    "displayName": "SparkX AI MCP",
+    "shortDescription": "Analyze Amazon Sponsored Ads data with SparkX AI.",
+    "longDescription": "Query Amazon Sponsored Ads performance, entity metadata, and operation logs through SparkX AI MCP, with bundled skills for accurate analysis.",
+    "developerName": "SparkX AI",
+    "category": "Data & Analytics",
+    "capabilities": [
+      "Read",
+      "Analytics"
+    ],
+    "websiteURL": "https://github.com/SparkXAI/MCP",
+    "defaultPrompt": [
+      "Show my stores and summarize yesterday's ad performance.",
+      "Rank last week's campaigns by spend and include ACOS.",
+      "Find recent AI bid changes."
+    ]
   }
 }

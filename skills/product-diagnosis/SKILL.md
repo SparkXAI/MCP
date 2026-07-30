@@ -8,7 +8,7 @@ description: >-
   the user asks "我哪些 ASIN 有问题", "变体谁在拖后腿", "新品该不该继续投", "product diagnosis",
   "ASIN health check". Not for account-wide structural share analysis (use ads-structure-analysis)
   or periodic WoW/MoM recaps (use weekly-ads-report / monthly-ads-report).
-version: 1.0.0
+version: 0.1.11
 ---
 
 # Product Diagnosis

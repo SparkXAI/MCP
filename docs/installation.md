@@ -1,6 +1,6 @@
 # SparkX AI MCP 安装说明
 
-> **🤖 致 AI Agent：如果你正在替用户执行本文档的配置，"配置 MCP"和"安装 Skills"是一个整体任务。** 完成 MCP 连接验证后，你必须继续安装 3 个必装 Skills（[`skills/`](../skills/) 目录，无需询问用户），然后逐个介绍 [`skills/optional/`](../skills/optional/) 下的 4 个可选 Skills 并询问用户是否安装。只配置连接不装 Skills 视为任务未完成。
+> **🤖 致 AI Agent：如果你正在替用户执行本文档的配置，"配置 MCP"和"安装 Skills"是一个整体任务。** 完成 MCP 连接验证后，你必须继续安装 3 个必装 Skills（[`skills/`](../skills/) 目录，无需询问用户），然后逐个介绍该目录下标记为可选的 4 个 Skills 并询问用户是否安装。只配置连接不装 Skills 视为任务未完成。
 
 完整走完 4 步：**获取 token → 配置 MCP → 安装 Skills → 验证**。全程约 5 分钟。
 
@@ -36,7 +36,7 @@
 2. 调用 get_user_authorized_context 验证，返回店铺列表即成功
 3. 从 https://github.com/SparkXAI/MCP 的 skills/ 目录安装 3 个必装 Skills：
    query-ads-performance、query-entity-metadata、query-operation-log
-4. 介绍 skills/optional/ 下的 4 个可选 Skills 并问我是否安装
+4. 介绍 skills/ 目录下标记为可选的 4 个 Skills 并问我是否安装
 ```
 
 它会自动配好、验证并装好必装 Skills，返回你授权的店铺列表就说明连接成功。
@@ -51,29 +51,19 @@
 
 #### Claude Code
 
-**在 Claude Code 会话内（slash command）：**
-
-```
+```text
 /plugin marketplace add SparkXAI/MCP
-/plugin install sparkx-mcp@sparkx
+/plugin install sparkx-ai-mcp@sparkx-ai
 ```
-
-**在命令行（CLI）：**
-
-```bash
-claude plugin marketplace add SparkXAI/MCP
-claude plugin install sparkx-mcp@sparkx
-```
-
-Claude Code 会自动拉取插件、配置 MCP server 并加载 Skills。之后设置环境变量即可（见下方[环境变量配置](#环境变量配置sparkx_token)）。
 
 #### Codex
 
 ```bash
 codex plugin marketplace add SparkXAI/MCP
+codex plugin add sparkx-ai-mcp@sparkx-ai
 ```
 
-然后在 Codex 的 Plugins 面板中安装 `sparkx-mcp`。
+Codex 也可在添加 marketplace 后通过 `/plugins` 安装。安装完成后，设置 `SPARKX_AI_TOKEN` 并启动新会话；见下方[环境变量配置](#环境变量配置sparkx_ai_token)。
 
 ### 方式三 · 手动配置
 
@@ -82,7 +72,7 @@ codex plugin marketplace add SparkXAI/MCP
 #### Claude Code CLI / Desktop 的 Code 标签页
 
 ```bash
-claude mcp add --transport http sparkx-mcp https://mcp.sparkx.cn/mcp --header "Authorization: Bearer <你的TOKEN>"
+claude mcp add --transport http sparkx-ai-mcp https://mcp.sparkx.cn/mcp --header "Authorization: Bearer <你的TOKEN>"
 ```
 
 建议保持默认的 **local scope**（仅当前项目文件夹），token 不会散落到其他项目。
@@ -94,10 +84,10 @@ claude mcp add --transport http sparkx-mcp https://mcp.sparkx.cn/mcp --header "A
 ```json
 {
   "mcpServers": {
-    "sparkx-mcp": {
+    "sparkx-ai-mcp": {
       "command": "npx",
-      "args": ["mcp-remote", "https://mcp.sparkx.cn/mcp", "--header", "Authorization: Bearer ${SPARKX_TOKEN}"],
-      "env": { "SPARKX_TOKEN": "<你的token>" }
+      "args": ["mcp-remote", "https://mcp.sparkx.cn/mcp", "--header", "Authorization: Bearer ${SPARKX_AI_TOKEN}"],
+      "env": { "SPARKX_AI_TOKEN": "<你的token>" }
     }
   }
 }
@@ -106,19 +96,19 @@ claude mcp add --transport http sparkx-mcp https://mcp.sparkx.cn/mcp --header "A
 #### ChatGPT Codex（`~/.codex/config.toml`）
 
 ```toml
-[mcp_servers.sparkx-mcp]
+[mcp_servers.sparkx-ai-mcp]
 url = "https://mcp.sparkx.cn/mcp"
-bearer_token_env_var = "SPARKX_TOKEN"
+bearer_token_env_var = "SPARKX_AI_TOKEN"
 http_headers = {}
 ```
 
 #### OpenClaw
 
 ```bash
-openclaw mcp add sparkx-mcp \
+openclaw mcp add sparkx-ai-mcp \
   --url https://mcp.sparkx.cn/mcp \
   --transport streamable-http \
-  --header "Authorization: Bearer $SPARKX_TOKEN"
+  --header "Authorization: Bearer $SPARKX_AI_TOKEN"
 ```
 
 > ⚠️ 旧版 OpenClaw 有个 bug：streamable-http 不转发自定义 Authorization 头（约 2026 年 4 月底起已修复）。遇到 401 先升级到最新版。
@@ -127,10 +117,10 @@ openclaw mcp add sparkx-mcp \
 
 ```yaml
 mcp_servers:
-  sparkx-mcp:
+  sparkx-ai-mcp:
     url: "https://mcp.sparkx.cn/mcp"
     headers:
-      Authorization: "Bearer ${SPARKX_TOKEN}"
+      Authorization: "Bearer ${SPARKX_AI_TOKEN}"
 ```
 
 然后在 Hermes 里运行 `/reload-mcp`。
@@ -141,26 +131,26 @@ mcp_servers:
 
 ---
 
-### 环境变量配置（SPARKX_TOKEN）
+### 环境变量配置（SPARKX_AI_TOKEN）
 
-部分客户端（Claude Code Plugin、Codex、Hermes 等）从环境变量 `SPARKX_TOKEN` 读取 token，推荐提前设置好。
+部分客户端（Claude Code Plugin、Codex、Hermes 等）从环境变量 `SPARKX_AI_TOKEN` 读取 token，推荐提前设置好。
 
 #### macOS / Linux
 
 临时（当前终端会话有效）：
 
 ```bash
-export SPARKX_TOKEN=<你的token>
+export SPARKX_AI_TOKEN=<你的token>
 ```
 
 永久（写入 shell 配置文件）：
 
 ```bash
 # zsh（macOS 默认）
-echo 'export SPARKX_TOKEN=<你的token>' >> ~/.zshrc && source ~/.zshrc
+echo 'export SPARKX_AI_TOKEN=<你的token>' >> ~/.zshrc && source ~/.zshrc
 
 # bash
-echo 'export SPARKX_TOKEN=<你的token>' >> ~/.bashrc && source ~/.bashrc
+echo 'export SPARKX_AI_TOKEN=<你的token>' >> ~/.bashrc && source ~/.bashrc
 ```
 
 #### Windows
@@ -168,16 +158,16 @@ echo 'export SPARKX_TOKEN=<你的token>' >> ~/.bashrc && source ~/.bashrc
 临时（当前 PowerShell 会话有效）：
 
 ```powershell
-$env:SPARKX_TOKEN = "<你的token>"
+$env:SPARKX_AI_TOKEN = "<你的token>"
 ```
 
 永久（写入用户环境变量，重启终端后生效）：
 
 ```powershell
-[System.Environment]::SetEnvironmentVariable("SPARKX_TOKEN", "<你的token>", "User")
+[System.Environment]::SetEnvironmentVariable("SPARKX_AI_TOKEN", "<你的token>", "User")
 ```
 
-或通过图形界面：「系统属性」→「高级」→「环境变量」→「用户变量」→「新建」，变量名填 `SPARKX_TOKEN`，变量值填你的 token。
+或通过图形界面：「系统属性」→「高级」→「环境变量」→「用户变量」→「新建」，变量名填 `SPARKX_AI_TOKEN`，变量值填你的 token。
 
 > ⚠️ Token 包含完整权限凭证，不要写入版本控制仓库，不要明文粘贴到聊天记录里。
 
@@ -203,7 +193,7 @@ Skills 在本仓库 [`skills/`](../skills/) 目录，分两类：
 - `query-entity-metadata` — 实体配置查询
 - `query-operation-log` — 操作日志查询
 
-**可选（4 个）**——进阶分析场景，装完必装的再按需添加（位于 [`skills/optional/`](../skills/optional/)）：
+**可选（4 个）**——进阶分析场景，装完必装的再按需添加（位于 [`skills/`](../skills/)）：
 
 - `weekly-ads-report` — 广告周报
 - `monthly-ads-report` — 广告月报

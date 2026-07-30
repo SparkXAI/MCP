@@ -1,18 +1,18 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
-  "name": "sparkx",
+  "name": "sparkx-ai",
   "version": "1.0.0",
   "description": "SparkX AI plugin marketplace — Amazon Sponsored Ads intelligence for AI agents",
   "owner": {
-    "name": "SparkX"
+    "name": "SparkX AI"
   },
   "plugins": [
     {
-      "name": "sparkx-mcp",
+      "name": "sparkx-ai-mcp",
       "version": "1.0.0",
       "description": "Amazon Sponsored Ads intelligence for AI agents: query ad performance, entity metadata, and operation logs via SparkX AI MCP.",
       "author": {
-        "name": "SparkX"
+        "name": "SparkX AI"
       },
       "source": "./",
       "category": "analytics",

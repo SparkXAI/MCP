@@ -4,8 +4,10 @@
 >
 > | 文件 | 用途 |
 > |------|------|
+> | [`.claude-plugin/marketplace.json`](.claude-plugin/marketplace.json) | Claude Code marketplace catalog |
 > | [`.claude-plugin/plugin.json`](.claude-plugin/plugin.json) | Claude Code plugin descriptor |
-> | [`.mcp.json`](.mcp.json) | MCP server 配置（`${SPARKX_TOKEN}` 环境变量） |
+> | [`.mcp.json`](.mcp.json) | MCP server 配置（`${SPARKX_AI_TOKEN}` 环境变量） |
+> | [`.agents/plugins/marketplace.json`](.agents/plugins/marketplace.json) | Codex marketplace catalog |
 > | [`.codex-plugin/plugin.json`](.codex-plugin/plugin.json) | Codex plugin descriptor |
 > | [`docs/installation.md`](docs/installation.md) | 详细安装说明（手动配置、plugin 安装、故障排查） |
 > | [`skills/manifest.json`](skills/manifest.json) | 机器可读的 Skills 清单 |
@@ -17,7 +19,7 @@
 > 1. 添加 MCP server（URL：`https://mcp.sparkx.cn/mcp`，Streamable HTTP，`Authorization: Bearer <token>` 请求头）
 > 2. 调用 `get_user_authorized_context` 验证，返回店铺列表即为成功
 > 3. **安装 3 个必装 Skills**（本仓库 [`skills/`](skills/) 目录：`query-ads-performance`、`query-entity-metadata`、`query-operation-log`）。不安装它们，MCP 查询出错率会明显上升。无需询问用户，直接安装。
-> 4. 向用户逐个介绍 [`skills/optional/`](skills/optional/) 下的 4 个可选 Skills（广告周报、广告月报、广告结构分析、商品诊断），**询问用户是否需要安装**，获用户确认后再装。
+> 4. 向用户逐个介绍 [`skills/`](skills/) 目录下标记为可选的 4 个 Skills（广告周报、广告月报、广告结构分析、商品诊断），**询问用户是否需要安装**，获用户确认后再装。
 >
 > 机器可读的 Skills 清单：`https://raw.githubusercontent.com/SparkXAI/MCP/main/skills/manifest.json`（`required: true` 为必装）。仅完成第 1-2 步就结束任务视为配置未完成。
 
@@ -68,7 +70,7 @@
 
 ### Plugin 安装（Claude Code / Codex）
 
-Claude Code 和 Codex 用户可通过 plugin marketplace 一键安装，自动完成 MCP 配置和 Skills 加载，详见 **[安装说明 · 方式二](docs/installation.md#方式二--plugin-安装)**。
+先添加 marketplace，再安装 plugin；命令见下方 [Plugin 安装指南](#plugin-安装指南) 或 **[安装说明 · 方式二](docs/installation.md#方式二--plugin-安装)**。
 
 ### 一句话配置（推荐）
 
@@ -81,7 +83,7 @@ Claude Code 和 Codex 用户可通过 plugin marketplace 一键安装，自动�
 2. 调用 get_user_authorized_context 验证，返回店铺列表即成功
 3. 从 https://github.com/SparkXAI/MCP 的 skills/ 目录安装 3 个必装 Skills：
    query-ads-performance、query-entity-metadata、query-operation-log
-4. 介绍 skills/optional/ 下的 4 个可选 Skills 并问我是否安装
+4. 介绍 skills/ 目录下标记为可选的 4 个 Skills 并问我是否安装
 ```
 
 返回你授权的店铺列表即为连接成功。各客户端手动配置、验证与故障排查见 **[安装说明 →](docs/installation.md)**
@@ -104,10 +106,10 @@ MCP 的 Tool 决定 AI"能拿到什么数据"，Skill 决定 AI"把数据用得�
 
 | Skill | 用途 |
 |-------|------|
-| [weekly-ads-report](skills/optional/weekly-ads-report/) | 广告周报：KPI 环比、7 天趋势、异常摘要、Top 变化榜、下周行动建议 |
-| [monthly-ads-report](skills/optional/monthly-ads-report/) | 广告月报：全月 KPI（环比 + 同比）、结构拆解、商品与关键词分析 |
-| [ads-structure-analysis](skills/optional/ads-structure-analysis/) | 广告结构分析：按广告类型 / 站点 / 组合等维度定位结构错配 |
-| [product-diagnosis](skills/optional/product-diagnosis/) | 商品诊断：ASIN 健康度分层、变体对比、去留优化建议 |
+| [weekly-ads-report](skills/weekly-ads-report/) | 广告周报：KPI 环比、7 天趋势、异常摘要、Top 变化榜、下周行动建议 |
+| [monthly-ads-report](skills/monthly-ads-report/) | 广告月报：全月 KPI（环比 + 同比）、结构拆解、商品与关键词分析 |
+| [ads-structure-analysis](skills/ads-structure-analysis/) | 广告结构分析：按广告类型 / 站点 / 组合等维度定位结构错配 |
+| [product-diagnosis](skills/product-diagnosis/) | 商品诊断：ASIN 健康度分层、变体对比、去留优化建议 |
 
 **安装方式**（任选其一）：
 
@@ -141,41 +143,23 @@ MCP 的 Tool 决定 AI"能拿到什么数据"，Skill 决定 AI"把数据用得�
 
 ## Plugin 安装指南
 
-本仓库作为标准 plugin marketplace 发布，支持下列平台一键接入。
+### Claude Code
 
-### Claude Code（推荐）
-
-**在 Claude Code 会话内（slash command）：**
-
-```
+```text
 /plugin marketplace add SparkXAI/MCP
-/plugin install sparkx-mcp@sparkx
+/plugin install sparkx-ai-mcp@sparkx-ai
 ```
-
-**在命令行（CLI）：**
-
-```bash
-claude plugin marketplace add SparkXAI/MCP
-claude plugin install sparkx-mcp@sparkx
-```
-
-或手动添加 MCP server：
-
-```bash
-claude mcp add --transport http sparkx-mcp https://mcp.sparkx.cn/mcp --header "Authorization: Bearer <TOKEN>"
-```
-
-Plugin descriptor：[`.claude-plugin/plugin.json`](.claude-plugin/plugin.json)
 
 ### ChatGPT Codex
 
-将 [`.codex-plugin/plugin.json`](.codex-plugin/plugin.json) 中的 `codex.snippet` 块追加到 `~/.codex/config.toml`，并设置环境变量：
-
 ```bash
-export SPARKX_TOKEN=<your-token>
+codex plugin marketplace add SparkXAI/MCP
+codex plugin add sparkx-ai-mcp@sparkx-ai
 ```
 
-Plugin descriptor：[`.codex-plugin/plugin.json`](.codex-plugin/plugin.json)
+Codex 也可在添加 marketplace 后通过 `/plugins` 安装。安装完成后，设置 `SPARKX_AI_TOKEN` 并启动新会话；详见[环境变量配置](docs/installation.md#环境变量配置sparkx_ai_token)。
+
+Marketplace：[Claude Code](.claude-plugin/marketplace.json) · [Codex](.agents/plugins/marketplace.json)；Plugin descriptor：[Claude Code](.claude-plugin/plugin.json) · [Codex](.codex-plugin/plugin.json)
 
 ### 通用 MCP 客户端
 

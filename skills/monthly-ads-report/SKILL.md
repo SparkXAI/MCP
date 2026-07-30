@@ -8,7 +8,7 @@ description: >-
   with attribution, and next-month structural recommendations. Use when the user says "出个月报",
   "月度复盘", "这个月表现如何", "monthly report". Not for weekly recaps (use weekly-ads-report) or
   quarterly/QBR-level strategic review (use quarterly-ads-report, not yet built).
-version: 1.0.0
+version: 0.5.6
 ---
 
 # Monthly Ads Report

@@ -1,9 +1,11 @@
 {
-  "sparkx-mcp": {
-    "type": "http",
-    "url": "https://mcp.sparkx.cn/mcp",
-    "headers": {
-      "Authorization": "Bearer ${SPARKX_TOKEN}"
+  "mcpServers": {
+    "sparkx-ai-mcp": {
+      "type": "http",
+      "url": "https://mcp.sparkx.cn/mcp",
+      "headers": {
+        "Authorization": "Bearer ${SPARKX_AI_TOKEN}"
+      }
     }
   }
 }

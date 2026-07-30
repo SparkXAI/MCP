@@ -1,7 +1,8 @@
 {
-  "name": "sparkx-mcp",
+  "name": "sparkx-ai-mcp",
+  "version": "1.0.0",
   "description": "Amazon Sponsored Ads intelligence for AI agents: query ad performance, entity metadata, and operation logs via SparkX AI MCP.",
   "author": {
-    "name": "SparkX"
+    "name": "SparkX AI"
   }
 }

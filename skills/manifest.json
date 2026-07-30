@@ -33,30 +33,30 @@
     },
     {
       "name": "weekly-ads-report",
-      "version": "1.0.0",
+      "version": "0.9.4",
       "required": false,
-      "path": "optional/weekly-ads-report",
+      "path": "weekly-ads-report",
       "description": "Generate a weekly ad performance recap: KPI card with WoW comparison, 7-day trend, anomalies, top movers, next-week actions."
     },
     {
       "name": "monthly-ads-report",
-      "version": "1.0.0",
+      "version": "0.5.6",
       "required": false,
-      "path": "optional/monthly-ads-report",
+      "path": "monthly-ads-report",
       "description": "Generate a monthly ad performance recap: full-month KPIs (MoM + YoY), structural breakdown, product and keyword analysis, next-month recommendations."
     },
     {
       "name": "ads-structure-analysis",
-      "version": "1.0.0",
+      "version": "0.2.3",
       "required": false,
-      "path": "optional/ads-structure-analysis",
+      "path": "ads-structure-analysis",
       "description": "Analyze spend and efficiency breakdown across campaign type / marketplace / portfolio / weekday dimensions and flag structural mismatches."
     },
     {
       "name": "product-diagnosis",
-      "version": "1.0.0",
+      "version": "0.1.11",
       "required": false,
-      "path": "optional/product-diagnosis",
+      "path": "product-diagnosis",
       "description": "Diagnose ASIN-level health: lifecycle tiering, variant comparison, diagnostic cards for underperformers, keep/optimize/cut recommendations."
     }
   ]
