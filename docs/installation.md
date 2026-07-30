@@ -63,7 +63,7 @@ codex plugin marketplace add SparkXAI/MCP
 codex plugin add sparkx-ai-mcp@sparkx-ai
 ```
 
-Codex 也可在添加 marketplace 后通过 `/plugins` 安装。安装完成后，设置 `SPARKX_AI_TOKEN` 并启动新会话；见下方[环境变量配置](#环境变量配置sparkx_ai_token)。
+Plugin 会同时安装 MCP server 和全部 7 个 Skills。Codex 也可在添加 marketplace 后通过 `/plugins` 安装；安装完成后，设置 `SPARKX_AI_TOKEN` 并启动新会话。见下方[环境变量配置](#环境变量配置sparkx_ai_token)。
 
 ### 方式三 · 手动配置
 

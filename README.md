@@ -6,7 +6,7 @@
 > |------|------|
 > | [`.claude-plugin/marketplace.json`](.claude-plugin/marketplace.json) | Claude Code marketplace catalog |
 > | [`.claude-plugin/plugin.json`](.claude-plugin/plugin.json) | Claude Code plugin descriptor |
-> | [`.mcp.json`](.mcp.json) | MCP server 配置（`${SPARKX_AI_TOKEN}` 环境变量） |
+> | [`.mcp.json`](.mcp.json) | Claude Code MCP server 配置（`${SPARKX_AI_TOKEN}` 环境变量） |
 > | [`.agents/plugins/marketplace.json`](.agents/plugins/marketplace.json) | Codex marketplace catalog |
 > | [`.codex-plugin/plugin.json`](.codex-plugin/plugin.json) | Codex plugin descriptor |
 > | [`docs/installation.md`](docs/installation.md) | 详细安装说明（手动配置、plugin 安装、故障排查） |
@@ -157,7 +157,7 @@ codex plugin marketplace add SparkXAI/MCP
 codex plugin add sparkx-ai-mcp@sparkx-ai
 ```
 
-Codex 也可在添加 marketplace 后通过 `/plugins` 安装。安装完成后，设置 `SPARKX_AI_TOKEN` 并启动新会话；详见[环境变量配置](docs/installation.md#环境变量配置sparkx_ai_token)。
+Plugin 会同时安装 MCP server 和全部 7 个 Skills。Codex 也可在添加 marketplace 后通过 `/plugins` 安装；安装完成后，设置 `SPARKX_AI_TOKEN` 并启动新会话，详见[环境变量配置](docs/installation.md#环境变量配置sparkx_ai_token)。
 
 Marketplace：[Claude Code](.claude-plugin/marketplace.json) · [Codex](.agents/plugins/marketplace.json)；Plugin descriptor：[Claude Code](.claude-plugin/plugin.json) · [Codex](.codex-plugin/plugin.json)
 

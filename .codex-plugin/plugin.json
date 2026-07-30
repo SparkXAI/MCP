@@ -20,7 +20,12 @@
     "analytics"
   ],
   "skills": "./skills/",
-  "mcpServers": "./.mcp.json",
+  "mcpServers": {
+    "sparkx-ai-mcp": {
+      "url": "https://mcp.sparkx.cn/mcp",
+      "bearer_token_env_var": "SPARKX_AI_TOKEN"
+    }
+  },
   "interface": {
     "displayName": "SparkX AI MCP",
     "shortDescription": "Analyze Amazon Sponsored Ads data with SparkX AI.",
