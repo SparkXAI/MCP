@@ -70,7 +70,7 @@
 
 ### Plugin 安装（Claude Code / Codex）
 
-先添加 marketplace，再安装 plugin；命令见下方 [Plugin 安装指南](#plugin-安装指南) 或 **[安装说明 · 方式二](docs/installation.md#方式二--plugin-安装)**。
+先添加 marketplace，再安装 plugin。桌面端 App 请在 Plugins 设置中操作；命令行用户可使用 CLI 命令。详见下方 [Plugin 安装指南](#plugin-安装指南) 或 **[安装说明 · 方式二](docs/installation.md#方式二--plugin-安装)**。
 
 ### 一句话配置（推荐）
 
@@ -143,21 +143,45 @@ MCP 的 Tool 决定 AI"能拿到什么数据"，Skill 决定 AI"把数据用得�
 
 ## Plugin 安装指南
 
-### Claude Code
+### 桌面端 App（推荐）
+
+#### Claude Desktop · Code 模式
+
+1. 点击左侧边栏的 **Customize**。
+2. 在弹出的窗口左下角点击 **Plugins**，再点击右上角的 **Add → Add marketplace**。
+3. 点击 **Add from a repository**，输入 `SparkXAI/MCP`。
+4. 在 **Plugins** 中找到新添加的 marketplace，然后安装 **SparkX AI MCP**。安装会同时启用 MCP server 和 Skills。
+
+> Claude Desktop 的 Code 模式不支持 `/plugin` 命令；`/plugin` 仅用于 Claude Code 命令行。桌面端请使用上述 Plugin manager。
+
+#### ChatGPT Desktop · Codex
+
+1. 点击左侧边栏的 **Plugins**。
+2. 点击右上角的 **Add → Add a marketplace**。
+3. 输入 `SparkXAI/MCP` 并添加 marketplace。
+4. 在 **Plugins** 中找到新添加的 marketplace，然后安装 **SparkX AI MCP**。安装会同时启用 MCP server 和 Skills。
+
+> ChatGPT 桌面端 Codex 不支持 `/plugin` 或 `/plugins` 命令；`/plugins` 仅用于 Codex CLI。桌面端必须通过左侧边栏的 Plugins 操作。
+
+桌面端界面参考：[Claude Desktop Code 模式](https://code.claude.com/docs/en/desktop#install-plugins) · [ChatGPT / Codex Plugins](https://learn.chatgpt.com/docs/plugins)
+
+### 命令行 CLI
+
+#### Claude Code CLI
 
 ```text
 /plugin marketplace add SparkXAI/MCP
 /plugin install sparkx-ai-mcp@sparkx-ai
 ```
 
-### ChatGPT Codex
+#### Codex CLI
 
 ```bash
 codex plugin marketplace add SparkXAI/MCP
 codex plugin add sparkx-ai-mcp@sparkx-ai
 ```
 
-Plugin 会同时安装 MCP server 和全部 7 个 Skills。Codex 也可在添加 marketplace 后通过 `/plugins` 安装；安装完成后，设置 `SPARKX_AI_TOKEN` 并启动新会话，详见[环境变量配置](docs/installation.md#环境变量配置sparkx_ai_token)。
+Plugin 会同时安装 MCP server 和全部 7 个 Skills。安装完成后，设置 `SPARKX_AI_TOKEN` 并启动新会话，详见[环境变量配置](docs/installation.md#环境变量配置sparkx_ai_token)。
 
 Marketplace：[Claude Code](.claude-plugin/marketplace.json) · [Codex](.agents/plugins/marketplace.json)；Plugin descriptor：[Claude Code](.claude-plugin/plugin.json) · [Codex](.codex-plugin/plugin.json)
 
