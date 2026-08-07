@@ -19,10 +19,10 @@
 
 | Skill | 版本 | 用途 |
 |-------|------|------|
-| [weekly-ads-report](weekly-ads-report/) | 0.9.4 | 广告周报：KPI 环比卡片、7 天趋势、异常摘要、Top 变化榜、下周行动建议 |
-| [monthly-ads-report](monthly-ads-report/) | 0.5.6 | 广告月报：全月 KPI（环比 + 同比）、结构拆解、商品与关键词分析、下月建议 |
-| [ads-structure-analysis](ads-structure-analysis/) | 0.2.3 | 广告结构分析：按广告类型 / 站点 / 组合 / 工作日维度拆解花费与效率，定位结构错配 |
-| [product-diagnosis](product-diagnosis/) | 0.1.11 | 商品诊断：ASIN 健康度分层、变体对比、问题商品诊断卡、去留优化建议 |
+| [weekly-ads-report](weekly-ads-report/) | 1.0.0 | 广告周报：KPI 环比卡片、7 天趋势、异常摘要、Top 变化榜、下周行动建议 |
+| [monthly-ads-report](monthly-ads-report/) | 1.0.0 | 广告月报：全月 KPI（环比 + 同比）、结构拆解、商品与关键词分析、下月建议 |
+| [ads-structure-analysis](ads-structure-analysis/) | 1.0.0 | 广告结构分析：按广告类型 / 站点 / 组合 / 工作日维度拆解花费与效率，定位结构错配 |
+| [product-diagnosis](product-diagnosis/) | 1.0.0 | 商品诊断：ASIN 健康度分层、变体对比、问题商品诊断卡、去留优化建议 |
 
 ## 版本
 

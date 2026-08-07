@@ -6,7 +6,7 @@ description: >-
   action recommendations. Use when the user says "出个周报", "周复盘", "上周表现如何", "weekly report".
   Not for monthly/quarterly reports (use monthly-ads-report / quarterly-ads-report, not yet built),
   nor for deep-dive analysis on a specific question (use the relevant analysis skill instead).
-version: 0.9.4
+version: 1.0.0
 ---
 
 # Weekly Ads Report
