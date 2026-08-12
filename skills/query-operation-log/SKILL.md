@@ -1,6 +1,6 @@
 ---
 name: query-operation-log
-version: 1.0.0
+version: 1.1.0
 description: >-
   Query SparkX AI platform operation logs: user and AI action history on ad entities.
   For tracking change history, auditing operations, troubleshooting issues.
@@ -23,9 +23,21 @@ Profile, tenant, and user scope are resolved from the authenticated bearer token
 
 **Before using this tool, read [`references/platform-notes.md`](references/platform-notes.md)** — it covers auth flow, permission scopes, error handling, pagination/date-limit tables, currency rules, the tool-selection decision tree, and implicit inference rules shared across all 3 read tools. That file ships inside this same skill folder, so it travels with this skill regardless of how it's packaged/installed. This SKILL.md only covers what's specific to `get_operation_log`.
 
-## ⚠️ This Tool Does NOT Support Pagination
+## ⚠️ Two Pagination Modes (decided by `entities`)
 
-This is the most important behavioral difference from the other two tools. `get_operation_log` is **limit-only**: it returns only the most recent N rows (time-descending), where N = `pageSize` (default 50, max 200). There is no `page` parameter at all. **Default to `pageSize: 200`** (the max) on every call, and **always check `truncated`** in the response. If `truncated=true`, your **first response should be to split the date range** into non-overlapping sub-windows and recurse — see "Getting a Complete Count" below for the exact procedure. Only narrow by `entities`/`resourceIds`/`changeBy`/`actionType`/`operationType` instead of splitting if you've already hit the single-day floor (a single day is still `truncated=true` on its own) or the user explicitly asked for one specific type of change — and if you do narrow by type as a substitute for splitting, say plainly that the result is a partial view, not complete history.
+`get_operation_log` behaves in one of two modes depending on `entities`. This is the most important thing to get right.
+
+**Mode A — Real pagination** (when `entities` is explicitly set to **exactly one non-`aiGroup` entity**, e.g. `["campaign"]`):
+- Supports `page` (1-based, default 1) + `pageSize` (default 100, max 1,000). Response includes `page`, `pageSize`, `hasNextPage`.
+- **To get the complete history, loop `page` (incrementing each call) while `hasNextPage=true`.** This is the preferred way to retrieve a complete change history for one entity type — no date-splitting needed. (`hasNextPage` is the real-pagination equivalent of `truncated`.)
+
+**Mode B — limit-only** (when `entities` is empty/omitted, has **multiple** entities, or is **only `aiGroup`**):
+- `page` is ignored. A single call returns at most `pageSize` rows (default 100, max 1,000; **`aiGroup`-only max 10,000**), time-descending. Response includes `limit` and `truncated`.
+- `truncated=true` means more matched than could be returned. **You cannot page.** Handle it in this order:
+  1. **Prefer steering the user to a single entity.** If they really only care about one kind of change ("just budget changes", "just campaign pause/enable"), guide them to narrow `entities` to a single non-`aiGroup` entity → this switches to Mode A, where you can page through the complete set. Only do this when it matches the user's actual intent; if they genuinely want the full cross-entity history, don't silently narrow — say the result is a partial view.
+  2. **Split the date range** into non-overlapping sub-windows and recurse (see "Getting a Complete Count" below).
+  3. **Add filters** (`resourceIds`/`actionType`/`operationType`/`changeBy`) as a last resort — this changes *what* you're searching for, so flag the result as partial when you do.
+  4. `aiGroup` is inherently limit-only (but its 10,000 cap is usually enough for a window).
 
 ## When to Use
 
@@ -56,7 +68,8 @@ See the Tool Selection Decision Tree above if the user's ask might belong to `ge
   "campaignTypes": ["campaign_type_list"],
   "targetTypes": ["target_type_list"],
   "placementTypes": ["placement_type_list"],
-  "pageSize": 200
+  "page": 1,
+  "pageSize": 100
 }
 ```
 
@@ -76,7 +89,8 @@ See the Tool Selection Decision Tree above if the user's ask might belong to `ge
 | campaignTypes | array[string] | No | — | Campaign type filter |
 | targetTypes | array[string] | No | — | Targeting type filter (see below) |
 | placementTypes | array[string] | No | — | Placement type filter (see below) |
-| pageSize | int | No | 50 | Max rows returned, **max 200**. Results are time-descending; **there is no `page` parameter — this tool does not paginate** |
+| page | int | No | 1 | Page number (1-based). **Only effective when `entities` is exactly one non-`aiGroup` entity** (Mode A); ignored for multi-entity or `aiGroup`-only queries (Mode B) |
+| pageSize | int | No | 100 | Max rows per page (Mode A) / per call (Mode B). Non-`aiGroup` max **1,000**; **`aiGroup`-only max 10,000**. Results are time-descending |
 
 ## Parameter Details, ChangeLogVO Field Reference
 
@@ -112,34 +126,41 @@ See the Tool Selection Decision Tree above if the user's ask might belong to `ge
     }
   ],
   "rowCount": 1,
-  "limit": 50,
+  "limit": 100,
   "truncated": false,
   "effectiveProfileIds": [4404871489220462]
 }
 ```
+
+The pagination fields differ by mode: **Mode A (real pagination)** returns `page`, `pageSize`, `hasNextPage`; **Mode B (limit-only)** returns `limit`, `truncated` (as shown above).
 
 | Field | Type | Description |
 |---|---|---|
 | `isError` | boolean | Whether the call errored — check this before reading `rows` |
 | `toolName` | string | Tool name |
 | `rows` | array[ChangeLogVO] | Log entries, time-descending |
-| `rowCount` | int | Number of rows returned |
-| `limit` | int | The `pageSize` actually applied |
-| `truncated` | boolean | **`true` means there were more matching records than `limit` could return.** Split the date range into non-overlapping sub-windows and continue querying each — do not try to page (there is no `page` param), and do not default to narrowing by type/entity filters, since that changes what you're searching for rather than just retrieving more of it. Only narrow by filter type as a last resort (a single day is still `truncated=true` on its own, or the user explicitly wants one type of change only) |
+| `rowCount` | int | Number of rows returned on this page/call |
+| `page` / `pageSize` | int | **Mode A only.** Current page and page size |
+| `hasNextPage` | boolean | **Mode A only.** `true` → fetch `page+1` to continue; loop until `false` for the complete set. (Semantically equivalent to Mode B's `truncated`) |
+| `limit` | int | **Mode B only.** The `pageSize` cap actually applied |
+| `truncated` | boolean | **Mode B only. `true` means more matched than `limit` could return.** You cannot page — steer the user to a single entity (→ Mode A), else split the date range into non-overlapping sub-windows, else add filters as a last resort (flagging the result as partial) |
 | `hint` | string | Guidance message, present when `truncated=true` |
 | `effectiveProfileIds` | array[long] | Profile IDs actually applied after intersecting with the token's authorized set |
 
 On error, the response instead follows the shared error envelope (`isError:true`, `errorType`, `message`, possibly `dimension`/`retryAfterSeconds`) described in Platform-Wide Rules above.
 
-## Getting a Complete Count (handling `truncated=true` rigorously)
+## Getting a Complete Count (handling large result sets rigorously)
 
-There is no server-side `groupBy` for this tool, and results are capped at `pageSize` (max 200) with no further pagination. To answer questions like "how many budget changes did each operator make" or "count of placement adjustments per campaign" **completely and correctly**, follow this procedure — a single narrowed retry is not sufficient to guarantee a correct count:
+There is no server-side `groupBy` for this tool — to answer "how many budget changes did each operator make" or "count of placement adjustments per campaign" **completely and correctly**, first pull the complete row set, then aggregate client-side. How you get the complete set depends on the mode:
 
-1. Issue the query with your filters (`entities`/`resourceIds`/`actionType`/`operationType`/`changeBy`) and check `truncated`.
-2. **If `truncated=false`**: the returned rows are the complete result for that window — aggregate client-side (group by `changedBy`/`operationType`/etc and count) and you're done.
-3. **If `truncated=true`**: split the date range into two **non-overlapping** sub-windows (bisect at the midpoint, with the second half starting the day after the first half ends — never let two sub-windows share a date), and recursively repeat this procedure on each half.
-4. Only sum/merge counts across sub-windows that are non-overlapping — overlapping ranges will double-count entries in both.
-5. **If a single day still returns `truncated=true`** on its own (more than 200 matching entries in one day for your filters), this tool **cannot guarantee a complete count** for that day. Don't report a partial number as if exact — tell the user the count is a lower bound (e.g. "at least 200 changes on 2024-06-15; can't return an exact count for a single day this active") and suggest narrowing by `resourceIds`/`operationType` if it matters.
+**If you can scope to a single non-`aiGroup` entity (Mode A) — preferred:** loop `page` (incrementing each call) while `hasNextPage=true`, collecting rows; raise `pageSize` toward the max (1,000) to cut round trips. Once `hasNextPage=false` you have the complete set — aggregate and you're done. No date-splitting needed.
+
+**Otherwise (Mode B: multi-entity or `aiGroup`-only) — use date-splitting:**
+1. Issue the query with your filters and check `truncated`.
+2. **If `truncated=false`**: the rows are complete for that window — aggregate client-side and you're done.
+3. **If `truncated=true`**: split the date range into two **non-overlapping** sub-windows (bisect at the midpoint, second half starting the day after the first half ends — never share a date), and recursively repeat on each half.
+4. Only sum/merge counts across **non-overlapping** sub-windows — overlapping ranges double-count.
+5. **If a single day still returns `truncated=true`** on its own (more than the cap — 1,000, or 10,000 for `aiGroup`-only — in one day for your filters), this tool **cannot guarantee a complete count** for that day. Don't report a partial number as exact — tell the user it's a lower bound (e.g. "at least 1,000 changes on 2024-06-15; can't return an exact count for a single day this active") and suggest scoping to a single entity (Mode A) or narrowing by `resourceIds`/`operationType`.
 
 ## Examples
 
@@ -150,7 +171,7 @@ There is no server-side `groupBy` for this tool, and results are capped at `page
   "dateStart": "2026-07-13",
   "dateEnd": "2026-07-19",
   "changeBy": {"operator": "IN", "values": ["ai"]},
-  "pageSize": 200,
+  "pageSize": 100,
   "userContext": "Last 7 days of AI auto-adjustments"
 }
 ```
@@ -162,7 +183,7 @@ There is no server-side `groupBy` for this tool, and results are capped at `page
   "dateStart": "2026-06-01",
   "dateEnd": "2026-06-30",
   "resourceIds": [{"idEntity": "campaign", "ids": [298539385213868]}],
-  "pageSize": 200,
+  "pageSize": 1000,
   "userContext": "Full change history for this campaign"
 }
 ```
@@ -175,7 +196,7 @@ There is no server-side `groupBy` for this tool, and results are capped at `page
   "dateEnd": "2026-06-30",
   "actionType": {"operator": "IN", "values": ["Budget Increased"]},
   "changeBy": {"operator": "IN", "values": ["manual"]},
-  "pageSize": 200,
+  "pageSize": 100,
   "userContext": "Manual budget increases this month"
 }
 ```
@@ -186,7 +207,7 @@ There is no server-side `groupBy` for this tool, and results are capped at `page
 - `dateStart`/`dateEnd` request params use `YYYY-MM-DD`; `createdDate` in returned rows is a full UTC timestamp
 - `dateEnd` must be equal to or later than `dateStart`
 - Max date span is 90 days, max lookback is 15 months — these are hard limits, not auto-truncation. Split longer windows into multiple calls
-- **This tool does NOT paginate.** There is no `page` parameter. `pageSize` (max 200) caps the total rows returned, always the most recent first. For a complete count over a large window, use the non-overlapping split-until-`truncated=false` procedure above — a single narrowed retry is not sufficient
+- **Pagination has two modes (decided by `entities`)**: a single non-`aiGroup` entity → real pagination (`page` + `pageSize`, loop until `hasNextPage=false`); multi-entity or `aiGroup`-only → limit-only (`pageSize` caps the call, max 1,000 / `aiGroup` 10,000, check `truncated`). For a complete count in limit-only mode, prefer steering to a single entity, otherwise use the non-overlapping date-split procedure above
 - When `entities` is not specified, returns operations on all entity types **except `audience`**
 - `profileIds` is **required**. Always call `get_user_authorized_context` first. If the user doesn't name a store, pass all authorized `profileIds`
 - Requested `profileIds` are intersected with the authorized set, not rejected outright — check `effectiveProfileIds`

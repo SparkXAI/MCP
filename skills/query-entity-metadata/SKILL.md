@@ -1,6 +1,6 @@
 ---
 name: query-entity-metadata
-version: 1.0.0
+version: 1.1.0
 description: >-
   Query advertising entity metadata: name, status, configuration, settings (no time range or metrics).
   For finding entity lists, getting config details, discovering ad structure relationships.
@@ -54,6 +54,7 @@ Unlike `get_ads_perf` (which infers tables from `select`), `get_entity_metadata`
   "profileIds": [1234567890123456],
   "filters": {},
   "orderBy": [{"field": "fieldName", "direction": "ASC"}],
+  "select": ["campaignId", "campaignName", "campaignState"],
   "page": 1,
   "pageSize": 100
 }
@@ -66,8 +67,19 @@ Unlike `get_ads_perf` (which infers tables from `select`), `get_entity_metadata`
 | userContext | string | **Yes** | — | User's original query + reason, max 100 chars |
 | filters | object | No | {} | Filter conditions. Field names are **camelCase**, no `entity.` prefix, no `_` suffix (e.g. `campaignState`, not `campaign.campaignState_`) |
 | orderBy | array[object] | No | [] | `[{"field": "fieldName", "direction": "DESC"}]` |
+| select | array[string] | No | all fields | Return **only** these top-level fields (no nested paths), in the given order. Unknown fields are ignored (reported via `meta.hint`). Does not affect pagination. See "Trimming fields with `select`" below |
 | page | int | No | 1 | Page number (1-based) |
 | pageSize | int | No | 100 | Rows per page, max 500 |
+
+## Trimming fields with `select`
+
+When you only need a few fields, pass `select` to return just those — it noticeably shrinks the response and saves tokens. Rules:
+
+- Field names use this tool's **plain camelCase** (e.g. `campaignState`) — **not** `get_ads_perf`'s `entity.field_` format.
+- **Top-level fields only** — nested paths are not supported.
+- Output order follows `select`; fields absent from a row are simply omitted; unknown field names are ignored and surfaced in `meta.hint` (with the first row's available fields).
+- `select` **does not affect pagination** (`page`/`pageSize`/`hasNextPage` behave the same).
+- ⚠️ **The `{field}Text` companion fields are NOT auto-included under `select`.** `select` is a strict projection: only the fields you list come back. If you still need the human-readable enum label (or will translate enums), you **must list both** the field and its `Text` companion, e.g. `["campaignState", "campaignStateText"]`. Selecting only `campaignState` returns the raw value `"paused"` — you won't get `"Paused"`.
 
 ## ⚠️ Field Naming Differs From `get_ads_perf`
 
@@ -120,7 +132,7 @@ Field names are **camelCase, no prefix/suffix** (different from `get_ads_perf`!)
 
 ## Enum "Text" Companion Fields
 
-For enum-valued fields, the response **automatically appends a human-readable `{field}Text` companion field**. Example:
+For enum-valued fields, the response **automatically appends a human-readable `{field}Text` companion field** — but **only when you do NOT use `select`**. If you pass `select`, this auto-append does not happen; you must list each `xxxText` field explicitly (see "Trimming fields with `select`" above). Example (no `select`):
 ```json
 {
   "campaignState": "enabled",
