@@ -106,9 +106,9 @@ Always check `isError` before reading `rows` — do not assume a response withou
 |---|---|---|---|
 | `get_ads_perf` | `page` + `pageSize` | 100 | 500 |
 | `get_entity_metadata` | `page` + `pageSize` | 100 | 500 |
-| `get_operation_log` | **limit-only, no `page` param** | 50 | 200 |
+| `get_operation_log` | single non-`aiGroup` entity: `page` + `pageSize`; multi-entity or `aiGroup`-only: limit-only | 100 | 1,000 (`aiGroup`-only 10,000) |
 
-`get_operation_log` always returns the most recent N rows time-descending; there is no way to page past the first N. **Default to `pageSize: 200`** and always check `truncated`. If `truncated=true`, split the date range into non-overlapping sub-windows and recurse (see `query-operation-log`'s "Getting a Complete Count" section) — this is the primary remedy. Narrowing by `entities`/`resourceIds`/`operationType`/`changeBy` instead of splitting changes *what* you're searching for, not just how much of it you retrieve, so only use it as a last resort (single day still truncated, or the user explicitly wants one type of change only) — and flag the result as partial when you do.
+`get_operation_log` has **two modes decided by `entities`**. When `entities` is exactly one non-`aiGroup` entity → **real pagination**: loop `page` while `hasNextPage=true` to retrieve the complete set (raise `pageSize` toward 1,000 to cut round trips). When `entities` is empty/multiple or only `aiGroup` → **limit-only**: a single call caps at `pageSize` (max 1,000, or 10,000 for `aiGroup`-only), always time-descending; check `truncated`. On `truncated=true` you cannot page — first prefer steering the user to a single entity (→ real pagination), otherwise split the date range into non-overlapping sub-windows and recurse (see `query-operation-log`'s "Getting a Complete Count"); adding `resourceIds`/`operationType`/`changeBy` filters is a last resort (changes *what* you're searching for — flag the result as partial).
 
 ## Date Range Limits
 
