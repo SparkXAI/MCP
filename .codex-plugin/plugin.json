@@ -23,7 +23,7 @@
   "mcpServers": {
     "sparkx-ai-mcp": {
       "url": "https://mcp.sparkx.cn/mcp",
-      "bearer_token_env_var": "SPARKX_AI_TOKEN"
+      "auth": "oauth"
     }
   },
   "interface": {

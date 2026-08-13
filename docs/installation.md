@@ -2,25 +2,35 @@
 
 > **🤖 致 AI Agent：如果你正在替用户执行本文档的配置，"配置 MCP"和"安装 Skills"是一个整体任务。** 完成 MCP 连接验证后，你必须继续安装 3 个必装 Skills（[`skills/`](../skills/) 目录，无需询问用户），然后逐个介绍该目录下标记为可选的 4 个 Skills 并询问用户是否安装。只配置连接不装 Skills 视为任务未完成。
 
-完整走完 4 步：**获取 token → 配置 MCP → 安装 Skills → 验证**。全程约 5 分钟。
+完整走完 4 步：**选择授权方式 → 连接并验证 MCP → 安装 Skills → 开始使用**。全程约 5 分钟。
 
 > 前提：你需要一个**支持 MCP 的 AI 助手**。最简单、最推荐用 **WorkBuddy**（国内）或 **Claude**（海外，Desktop 应用或 Code CLI）；也支持 ChatGPT Codex、Cherry Studio、扣子 Coze、OpenClaw、Hermes、Cursor、Cline 等。
 
 ---
 
-## 第一步 · 获取你的 token
+## 第一步 · 选择授权方式
 
-> ⚠️ Token 决定你能查询哪些店铺和哪些数据，请妥善保管、勿外传。
+SparkX AI MCP 支持 OAuth 和 MCP Token 两种授权方式。两种方式使用相同的 Server URL 和 MCP Tools。
+
+### 方式 A · OAuth（推荐）
+
+适用于支持 MCP OAuth 的客户端。连接时会打开 SparkX 登录授权页面，无需创建、复制或保存 Token。授权完成后，客户端会自动维护连接状态。
+
+### 方式 B · MCP Token
+
+适用于暂不支持 OAuth 的客户端、自动化脚本，或企业要求使用固定凭证的场景。
 
 1. 登录 SparkX 后台，点击右上角账号菜单，进入 **MCP & Skills**。
-2. 点击「**新建 Token**」，按需选择：有效期、授权范围（如 Amazon SA）、店铺范围和数据权限。
-3. **立即复制并妥善保存** 生成的 token——关闭弹窗后将无法再次查看，遗失需重新创建。
+2. 点击「**新建 Token**」，按需选择有效期、授权范围、店铺范围和数据权限。
+3. **立即复制并妥善保存**生成的 Token。关闭弹窗后无法再次查看，遗失后需重新创建。
+
+> ⚠️ MCP Token 是访问凭证，请勿共享或粘贴到公开的对话、文档和代码仓库中。
 
 ---
 
 ## 第二步 · 在你的 AI 助手里配置 MCP
 
-**本质就一件事**：告诉助手两样东西——Server URL 和你的 token（作为 `Authorization: Bearer <token>` 请求头）。
+两种授权方式使用同一个 MCP Server。优先使用 OAuth；客户端不支持 OAuth 或用户明确要求时，再使用 MCP Token。
 
 - **Server URL**：`https://mcp.sparkx.cn/mcp`
 - **传输方式**：Streamable HTTP
@@ -30,18 +40,18 @@
 在能让 AI 自己动手配置的客户端（Claude、ChatGPT Codex、Cherry Studio、扣子 Coze、WorkBuddy 等）里，直接把下面这段发给它：
 
 ```text
-帮我配置 SparkX AI MCP 并安装配套 Skills，按顺序完成：
-1. 添加 MCP server：URL https://mcp.sparkx.cn/mcp（Streamable HTTP），
-   请求头 Authorization: Bearer <你的 token>
-2. 调用 get_user_authorized_context 验证，返回店铺列表即成功
-3. 从 https://github.com/SparkXAI/MCP 的 skills/ 目录安装 3 个必装 Skills：
-   query-ads-performance、query-entity-metadata、query-operation-log
-4. 介绍 skills/ 目录下标记为可选的 4 个 Skills 并问我是否安装
+请阅读以下 GitHub 仓库，并按说明配置 SparkX AI MCP 和安装 Skills：
+https://github.com/SparkXAI/MCP
+
+请优先使用 OAuth 方式连接。需要授权时，请打开登录页面让我完成授权。
+如果当前客户端不支持 OAuth，请提示我改用 MCP Token。
+
+配置完成后，请调用 get_user_authorized_context 验证连接。
 ```
 
 > **🤖 致 AI Agent：** 执行上述配置时，请根据你所在客户端的实际配置方式，将 MCP 配置写入正确的配置文件。注意区分不同客户端使用的配置文件名称（如 `mcp.json`、`.mcp.json`、`mcp_config.json`、`config.toml`、`config.yaml` 等），不要混淆。
 
-它会自动配好、验证并装好必装 Skills，返回你授权的店铺列表就说明连接成功。
+助手会配置 MCP、打开 OAuth 登录页面、验证连接并安装必装 Skills。返回已授权的店铺列表即表示连接成功。
 
 - **Claude**：打开 Claude → 切到 **Code 标签页** → 粘贴上面这段。
 - **ChatGPT Codex**：直接把这段发给 Codex（它会写进 `~/.codex/config.toml`）。
@@ -89,7 +99,7 @@ codex plugin marketplace add SparkXAI/MCP
 codex plugin add sparkx-ai-mcp@sparkx-ai
 ```
 
-Plugin 会同时安装 MCP server 和全部 7 个 Skills。安装完成后，设置 `SPARKX_AI_TOKEN` 并启动新会话。见下方[环境变量配置](#环境变量配置sparkx_ai_token)。
+Plugin 会同时安装 MCP server 和全部 7 个 Skills。安装完成后，按客户端提示打开登录页面并完成 OAuth 授权。如需使用 MCP Token，请使用下方 Token 配置。
 
 ### 方式三 · 手动配置
 
@@ -97,7 +107,38 @@ Plugin 会同时安装 MCP server 和全部 7 个 Skills。安装完成后，设
 
 > **🤖 致 AI Agent：** 以下列出多种客户端的配置示例，每种客户端的配置文件名称和格式各不相同。请根据用户实际使用的客户端，选择对应的配置方式写入正确的文件，不要混淆不同客户端的配置文件。
 
-#### Claude Code CLI / Desktop 的 Code 标签页
+#### OAuth（推荐）
+
+##### Claude Code CLI / Desktop 的 Code 标签页
+
+```bash
+claude mcp add --transport http sparkx-ai-mcp https://mcp.sparkx.cn/mcp
+```
+
+添加后输入 `/mcp`，选择 `sparkx-ai-mcp` 并按提示打开浏览器完成授权。
+
+##### ChatGPT Codex
+
+```bash
+codex mcp add sparkx-ai-mcp --url https://mcp.sparkx.cn/mcp
+codex mcp login sparkx-ai-mcp
+```
+
+第二条命令会打开 SparkX 登录授权页面。完成授权后返回 Codex。
+
+##### 其他支持 OAuth 的 MCP 客户端
+
+在客户端的 MCP 设置中添加远程 / Streamable HTTP server：
+
+```text
+https://mcp.sparkx.cn/mcp
+```
+
+选择 **OAuth**、**登录**或**授权**，并按客户端提示完成浏览器授权。
+
+#### MCP Token
+
+##### Claude Code CLI / Desktop 的 Code 标签页
 
 ```bash
 claude mcp add --transport http sparkx-ai-mcp https://mcp.sparkx.cn/mcp --header "Authorization: Bearer <你的TOKEN>"
@@ -105,7 +146,7 @@ claude mcp add --transport http sparkx-ai-mcp https://mcp.sparkx.cn/mcp --header
 
 建议保持默认的 **local scope**（仅当前项目文件夹），token 不会散落到其他项目。
 
-#### Claude Desktop（Chat，UI 无 Bearer 选项时）
+##### Claude Desktop（Chat，UI 无 Bearer 选项时）
 
 编辑 `claude_desktop_config.json`（Windows：`%APPDATA%\Claude\`；macOS：`~/Library/Application Support/Claude/`），用 `mcp-remote` 包一层后重启：
 
@@ -121,7 +162,7 @@ claude mcp add --transport http sparkx-ai-mcp https://mcp.sparkx.cn/mcp --header
 }
 ```
 
-#### ChatGPT Codex（`~/.codex/config.toml`）
+##### ChatGPT Codex（`~/.codex/config.toml`）
 
 ```toml
 [mcp_servers.sparkx-ai-mcp]
@@ -130,7 +171,7 @@ bearer_token_env_var = "SPARKX_AI_TOKEN"
 http_headers = {}
 ```
 
-#### OpenClaw
+##### OpenClaw
 
 ```bash
 openclaw mcp add sparkx-ai-mcp \
@@ -141,7 +182,7 @@ openclaw mcp add sparkx-ai-mcp \
 
 > ⚠️ 旧版 OpenClaw 有个 bug：streamable-http 不转发自定义 Authorization 头（约 2026 年 4 月底起已修复）。遇到 401 先升级到最新版。
 
-#### Hermes（`~/.hermes/config.yaml`）
+##### Hermes（`~/.hermes/config.yaml`）
 
 ```yaml
 mcp_servers:
@@ -153,7 +194,7 @@ mcp_servers:
 
 然后在 Hermes 里运行 `/reload-mcp`。
 
-#### 其他 MCP 客户端（Cursor、Cline 等）
+##### 其他 MCP 客户端（Cursor、Cline 等）
 
 在客户端的 MCP 设置里添加一个远程 / Streamable HTTP server，填上面的 URL 和 `Authorization: Bearer <你的TOKEN>` 请求头即可。
 
@@ -161,7 +202,7 @@ mcp_servers:
 
 ### 环境变量配置（SPARKX_AI_TOKEN）
 
-部分客户端（Claude Code Plugin、Codex、Hermes 等）从环境变量 `SPARKX_AI_TOKEN` 读取 token，推荐提前设置好。
+仅使用 MCP Token 时需要配置该环境变量。Codex、Hermes 等客户端可从 `SPARKX_AI_TOKEN` 读取 Token，避免把凭证直接写入配置文件。
 
 #### macOS / Linux
 
@@ -201,12 +242,15 @@ $env:SPARKX_AI_TOKEN = "<你的token>"
 
 
 
-让助手调用 `get_user_authorized_context`：
+### 验证连接
+
+完成 OAuth 或 MCP Token 配置后，让助手调用 `get_user_authorized_context`：
 
 | 结果 | 含义 |
 |------|------|
 | 返回你的 userId 和授权的 profileIds | ✅ 配置成功 |
-| 返回 401 | Token 错误或缺权限，重新生成 |
+| 客户端提示登录或授权 | OAuth 尚未完成，按提示打开页面授权 |
+| 返回 401 | OAuth 已失效或被撤销，或 MCP Token 错误、过期、被禁用或缺少权限 |
 | 超时 | 检查网络 |
 
 ---
@@ -259,7 +303,7 @@ Skills 在本仓库 [`skills/`](../skills/) 目录，分两类：
 ## 常见问题
 
 **Q：返回 401 Unauthorized？**
-Token 过期、复制不完整或权限不足。到后台 MCP & Skills 页面重新生成一个，注意勾选对应店铺和数据权限。旧版 OpenClaw 用户请先升级客户端。
+先确认使用的授权方式。OAuth 用户请重新登录授权，并确认授权未被撤销；MCP Token 用户请检查 Token 是否过期、复制完整、未被禁用且具备所需权限。旧版 OpenClaw 用户请先升级客户端。
 
 **Q：能查多久以前的数据？**
 效果数据和操作日志约可回溯最近 15 个月，效果数据最细到天。
@@ -268,7 +312,7 @@ Token 过期、复制不完整或权限不足。到后台 MCP & Skills 页面重
 与 SparkX AI 平台数据更新节奏一致，非秒级实时。
 
 **Q：能查哪些店铺？**
-与你的 SparkX 账号（主 / 子账号）权限一致——token 的可见范围不会超过你本人的账号权限。
+取决于你的 SparkX 账号权限及本次 OAuth 或 MCP Token 的授权范围，最终可见范围不会超过账号本身的权限。
 
 **Q：这一版能改预算 / 调竞价吗？**
 不能。v1.0.0 是只读版本，写操作能力（托管组管理、批量操作、活动创建）将在后续版本陆续开放。
