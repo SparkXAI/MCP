@@ -12,7 +12,7 @@
 
 SparkX AI MCP 支持 OAuth 和 MCP Token 两种授权方式。两种方式使用相同的 Server URL 和 MCP Tools。
 
-### 方式 A · OAuth
+### 方式 A · OAuth（推荐）
 
 适用于支持 MCP OAuth 的客户端。连接时会打开 SparkX 登录授权页面，无需创建、复制或保存 Token。授权完成后，客户端会自动维护连接状态。
 
@@ -30,7 +30,7 @@ SparkX AI MCP 支持 OAuth 和 MCP Token 两种授权方式。两种方式使用
 
 ## 第二步 · 在你的 AI 助手里配置 MCP
 
-两种授权方式使用同一个 MCP Server。请根据客户端能力、使用场景和组织要求选择更合适的方式。
+两种授权方式使用同一个 MCP Server。优先使用 OAuth；客户端不支持 OAuth 或用户明确要求时，再使用 MCP Token。
 
 - **Server URL**：`https://mcp.sparkx.cn/mcp`
 - **传输方式**：Streamable HTTP
@@ -43,7 +43,8 @@ SparkX AI MCP 支持 OAuth 和 MCP Token 两种授权方式。两种方式使用
 请阅读以下 GitHub 仓库，并按说明配置 SparkX AI MCP 和安装 Skills：
 https://github.com/SparkXAI/MCP
 
-请先检查当前客户端支持哪些授权方式，简要说明 OAuth 和 MCP Token 分别适合哪些场景，并让我确认使用哪一种方式后再开始授权。
+请优先使用 OAuth 方式连接。需要授权时，请打开登录页面让我完成授权。
+如果当前客户端不支持 OAuth，请提示我改用 MCP Token。
 
 配置完成后，请调用 get_user_authorized_context 验证连接。
 ```
@@ -106,7 +107,7 @@ Plugin 会同时安装 MCP server 和全部 7 个 Skills。安装完成后，按
 
 > **🤖 致 AI Agent：** 以下列出多种客户端的配置示例，每种客户端的配置文件名称和格式各不相同。请根据用户实际使用的客户端，选择对应的配置方式写入正确的文件，不要混淆不同客户端的配置文件。
 
-#### OAuth
+#### OAuth（推荐）
 
 ##### Claude Code CLI / Desktop 的 Code 标签页
 

@@ -16,7 +16,7 @@
 
 > **🤖 致 AI Agent：如果你正在替用户配置 SparkX AI MCP，配置连接只是第一步，你必须完成以下全部步骤，缺一不可：**
 >
-> 1. 检查当前客户端支持的授权方式，简要说明 OAuth 和 MCP Token 的适用场景，并让用户确认后连接 MCP server（URL：`https://mcp.sparkx.cn/mcp`，Streamable HTTP）
+> 1. 添加 MCP server（URL：`https://mcp.sparkx.cn/mcp`，Streamable HTTP）。优先使用 OAuth；客户端不支持 OAuth 或用户明确要求时，再使用 MCP Token
 > 2. 调用 `get_user_authorized_context` 验证，返回店铺列表即为成功
 > 3. **安装 3 个必装 Skills**（本仓库 [`skills/`](skills/) 目录：`query-ads-performance`、`query-entity-metadata`、`query-operation-log`）。不安装它们，MCP 查询出错率会明显上升。无需询问用户，直接安装。
 > 4. 向用户逐个介绍 [`skills/`](skills/) 目录下标记为可选的 4 个 Skills（广告周报、广告月报、广告结构分析、商品诊断），**询问用户是否需要安装**，获用户确认后再装。
@@ -63,7 +63,7 @@
 
 ## 快速开始（4 步）
 
-1. **选择授权方式并连接 MCP**——根据客户端能力、使用场景和组织要求，在 OAuth 与 MCP Token 中选择更合适的方式。
+1. **选择授权方式并连接 MCP**——推荐使用 OAuth，也支持 MCP Token。
 2. **验证连接**——调用 `get_user_authorized_context`，确认已授权的店铺范围。
 3. **安装 Skills**——本仓库 [`skills/`](skills/) 目录，强烈推荐安装，显著降低查询出错率。
 4. **开始查询**——用自然语言提问。
@@ -80,7 +80,8 @@
 请阅读以下 GitHub 仓库，并按说明配置 SparkX AI MCP 和安装 Skills：
 https://github.com/SparkXAI/MCP
 
-请先检查当前客户端支持哪些授权方式，简要说明 OAuth 和 MCP Token 分别适合哪些场景，并让我确认使用哪一种方式后再开始授权。
+请优先使用 OAuth 方式连接。需要授权时，请打开登录页面让我完成授权。
+如果当前客户端不支持 OAuth，请提示我改用 MCP Token。
 
 配置完成后，请调用 get_user_authorized_context 验证连接。
 ```
