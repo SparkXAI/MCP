@@ -120,14 +120,14 @@ Plugin 会同时安装 MCP server 和全部 7 个 Skills。当前 Plugin 配置�
 
 Claude Desktop 和 Claude 网页版可以通过 Custom Connector 直接连接远程 MCP Server，无需编辑 `mcp.json`、安装 Node.js 或运行 `npx`。
 
-1. 打开 **Settings → Connectors → Add custom connector**。
-   - Claude Desktop：点击左下角账号名称 → **Settings → Connectors**。
-   - Claude 网页版：点击个人资料菜单 → **Settings → Connectors**。
-2. 填写：
+1. 根据套餐添加连接器：
+   - **Pro / Max**：打开 **Customize → Connectors → + → Add custom connector**。
+   - **Team / Enterprise**：由组织的 Owner 或 Primary Owner 打开 **Organization settings → Connectors → Add → Custom → Web**。普通成员不能自行添加。
+2. 添加时填写：
    - **Name**：`SparkX AI MCP`
    - **Remote MCP server URL**：`https://mcp.sparkx.cn/mcp`
-3. 点击 **Add**，再点击 **Connect**。
-4. 在打开的浏览器页面中登录 SparkX 并确认授权。
+3. 点击 **Add**。Team / Enterprise 成员随后在 **Customize → Connectors** 中找到该连接器并点击 **Connect**；Pro / Max 用户直接点击 **Connect**。
+4. 在打开的浏览器页面中登录 SparkX 并确认个人授权。
 5. 返回 Claude，连接器显示 **Connected** 后即可使用 MCP Tools，无需重启。
 
 ##### Claude Code CLI / Desktop 的 Code 标签页
@@ -156,6 +156,8 @@ https://mcp.sparkx.cn/mcp
 ```
 
 选择 **OAuth**、**登录**或**授权**，并按客户端提示完成浏览器授权。
+
+> **OAuth 兼容性：**客户端必须按照 MCP OAuth 规范，在 authorization request 和 token request 中传递 `resource`，其值为完整的 MCP Server URL：`https://mcp.sparkx.cn/mcp`。符合 MCP OAuth 规范的客户端会自动处理，用户无需手动配置，也不要将 `resource` 拼接到 Server URL。自研客户端或手动实现 DCR + PKCE 时需要显式支持。
 
 #### MCP Token
 

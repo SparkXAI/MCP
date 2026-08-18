@@ -148,7 +148,7 @@ MCP 的 Tool 决定 AI"能拿到什么数据"，Skill 决定 AI"把数据用得�
 
 ### 桌面端 App
 
-> 普通 Claude Desktop / Claude 网页版的 Chat 模式请使用 [Custom Connector](docs/installation.md#claude-desktop-与-claude-网页版custom-connector无需配置文件) 连接 MCP。Custom Connector 只提供 MCP Tools，Skills 需要在 **Settings → Skills** 中单独添加。以下 marketplace 安装流程仅适用于 Claude Code Desktop。
+> 普通 Claude Desktop / Claude 网页版的 Chat 模式请使用 [Custom Connector](docs/installation.md#claude-desktop-与-claude-网页版custom-connector无需配置文件) 连接 MCP。Custom Connector 只提供 MCP Tools，Skills 需要在 **Settings → Skills** 中单独添加。Claude Team / Enterprise 需要先由组织的 Owner 或 Primary Owner 添加连接器。以下 marketplace 安装流程仅适用于 Claude Code Desktop。
 
 #### Claude Code Desktop
 
