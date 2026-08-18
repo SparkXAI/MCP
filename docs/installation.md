@@ -63,27 +63,30 @@ SparkX AI MCP 支持 OAuth 和 MCP Token 两种授权方式。
 
 ### 方式二 · Plugin 安装
 
-#### 桌面端 App（推荐）
+#### 桌面端 App
 
-##### Claude Desktop · Code 模式
+> 普通 Claude Desktop / Claude 网页版的 Chat 模式请使用下方 [Custom Connector](#claude-desktop-与-claude-网页版custom-connector无需配置文件) 连接 MCP。Custom Connector 只提供 MCP Tools，Skills 需要在 **Settings → Skills** 中单独添加。以下 marketplace 安装流程仅适用于 Claude Code Desktop。
 
-1. 点击左侧边栏的 **Customize**。
-2. 在弹出的窗口左下角点击 **Plugins**，再点击右上角的 **Add → Add marketplace**。
-3. 点击 **Add from a repository**，输入 `SparkXAI/MCP`。
-4. 在 **Plugins** 中找到新添加的 marketplace，然后安装 **SparkX AI MCP**。安装会同时启用 MCP server 和 Skills。
+##### Claude Code Desktop
 
-> **注意：**Claude Desktop 的 Code 模式不支持 `/plugin` 命令。该命令仅用于 Claude Code CLI；桌面端必须通过 Plugin manager 操作。
+1. 切换到 **Code** 标签页。
+2. 点击输入框旁的 **+ → Plugins → Add plugin**，打开 Plugin browser。
+3. 在 **Marketplaces** 中选择从 repository 添加，输入 `SparkXAI/MCP`。
+4. 找到并安装 **SparkX AI MCP**。Plugin 会同时安装 MCP server 和全部 7 个 Skills。
+
+> **注意：**Claude Code Desktop 不支持 `/plugin` 命令。该命令仅用于 Claude Code CLI；桌面端请使用 Plugin browser。
 
 ##### ChatGPT Desktop · Codex
 
 1. 点击左侧边栏的 **Plugins**。
 2. 点击右上角的 **Add → Add a marketplace**。
 3. 输入 `SparkXAI/MCP` 并添加 marketplace。
-4. 在 **Plugins** 中找到新添加的 marketplace，然后安装 **SparkX AI MCP**。安装会同时启用 MCP server 和 Skills。
+4. 在 **Plugins** 中找到新添加的 marketplace，然后安装 **SparkX AI MCP**。
+5. 新建一个 Codex 任务，MCP server 和全部 7 个 Skills 将在新任务中可用。
 
 > **注意：**ChatGPT 桌面端 Codex 不支持 `/plugin` 或 `/plugins` 命令。`/plugins` 仅用于 Codex CLI；桌面端必须通过左侧边栏的 Plugins 操作。
 
-桌面端界面参考：[Claude Desktop Code 模式](https://code.claude.com/docs/en/desktop#install-plugins) · [ChatGPT / Codex Plugins](https://learn.chatgpt.com/docs/plugins)
+桌面端界面参考：[Claude Code Desktop](https://code.claude.com/docs/en/desktop#install-plugins) · [ChatGPT / Codex Plugins](https://learn.chatgpt.com/docs/plugins)
 
 #### 命令行 CLI
 
@@ -98,8 +101,10 @@ SparkX AI MCP 支持 OAuth 和 MCP Token 两种授权方式。
 
 ```bash
 codex plugin marketplace add SparkXAI/MCP
-codex plugin add sparkx-ai-mcp@sparkx-ai
+codex
 ```
+
+进入 Codex CLI 后输入 `/plugins`，从 `sparkx-ai` marketplace 中选择并安装 **SparkX AI MCP**，然后启动新会话。
 
 Plugin 会同时安装 MCP server 和全部 7 个 Skills。当前 Plugin 配置使用 `SPARKX_AI_TOKEN`；设置环境变量并启动新会话。若选择 OAuth，请使用下方 OAuth 配置。
 
