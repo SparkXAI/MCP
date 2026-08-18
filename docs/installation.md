@@ -284,19 +284,19 @@ Skills 在本仓库 [`skills/`](../skills/) 目录，分两类：
 
 **必装（6 个）**——覆盖基础查询和托管组管理：
 
-- `query-ads-performance` — 广告效果查询
-- `query-entity-metadata` — 实体配置查询
-- `query-operation-log` — 操作日志查询
-- `create-ai-group` — 创建 AI 托管组
-- `edit-ai-group` — 编辑单个或批量 AI 托管组
-- `delete-ai-group` — 删除 AI 托管组
+- `sparkx-query-ads-performance` — 广告效果查询
+- `sparkx-query-entity-metadata` — 实体配置查询
+- `sparkx-query-operation-log` — 操作日志查询
+- `sparkx-create-ai-group` — 创建 AI 托管组
+- `sparkx-edit-ai-group` — 编辑单个或批量 AI 托管组
+- `sparkx-delete-ai-group` — 删除 AI 托管组
 
 **可选（4 个）**——进阶分析场景，装完必装的再按需添加（位于 [`skills/`](../skills/)）：
 
-- `weekly-ads-report` — 广告周报
-- `monthly-ads-report` — 广告月报
-- `ads-structure-analysis` — 广告结构分析
-- `product-diagnosis` — 商品诊断
+- `sparkx-weekly-ads-report` — 广告周报
+- `sparkx-monthly-ads-report` — 广告月报
+- `sparkx-ads-structure-analysis` — 广告结构分析
+- `sparkx-product-diagnosis` — 商品诊断
 
 按你的助手选安装方式：
 

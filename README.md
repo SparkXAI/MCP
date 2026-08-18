@@ -18,7 +18,7 @@
 >
 > 1. 添加 MCP server（URL：`https://mcp.sparkx.cn/mcp`，Streamable HTTP）。先检查客户端支持的授权方式，说明 OAuth 与 MCP Token 的适用场景，并让用户确认后再配置
 > 2. 调用 `get_user_authorized_context` 验证，返回店铺列表即为成功
-> 3. **安装 6 个必装 Skills**（本仓库 [`skills/`](skills/) 目录：3 个查询 Skills，以及 `create-ai-group`、`edit-ai-group`、`delete-ai-group`）。它们分别约束查询和托管组写操作，安装时无需询问用户。
+> 3. **安装 6 个必装 Skills**（本仓库 [`skills/`](skills/) 目录：3 个查询 Skills，以及 `sparkx-create-ai-group`、`sparkx-edit-ai-group`、`sparkx-delete-ai-group`）。它们分别约束查询和托管组写操作，安装时无需询问用户。
 > 4. 向用户逐个介绍 [`skills/`](skills/) 目录下标记为可选的 4 个 Skills（广告周报、广告月报、广告结构分析、商品诊断），**询问用户是否需要安装**，获用户确认后再装。
 >
 > 机器可读的 Skills 清单：`https://raw.githubusercontent.com/SparkXAI/MCP/main/skills/manifest.json`（`required: true` 为必装）。仅完成第 1-2 步就结束任务视为配置未完成。
@@ -103,21 +103,21 @@ MCP 的 Tool 决定 AI"能拿到什么数据"，Skill 决定 AI"把数据用得�
 
 | Skill | 对应 MCP Tool | 用途 |
 |-------|--------------|------|
-| [query-ads-performance](skills/query-ads-performance/) | `get_ads_perf` | 查询广告效果指标：花费、ACOS、ROAS、趋势、排名、同环比 |
-| [query-entity-metadata](skills/query-entity-metadata/) | `get_entity_metadata` | 查询实体配置：广告活动 / 广告组 / 投放 / ASIN / 托管组的名称、状态、设置 |
-| [query-operation-log](skills/query-operation-log/) | `get_operation_log` | 查询操作日志：人工与 AI 的调价、调预算、启停记录 |
-| [create-ai-group](skills/create-ai-group/) | `create_sd_ai_managed_group` / `save_sp_sb_ai_managed_group` | 创建 SP、SB 或 SD AI 托管组 |
-| [edit-ai-group](skills/edit-ai-group/) | `edit_sd_ai_managed_group` / `save_sp_sb_ai_managed_group` | 编辑单个或批量 AI 托管组 |
-| [delete-ai-group](skills/delete-ai-group/) | `delete_ai_managed_group` | 删除托管组，并释放或迁移其中的 Campaign |
+| [sparkx-query-ads-performance](skills/sparkx-query-ads-performance/) | `get_ads_perf` | 查询广告效果指标：花费、ACOS、ROAS、趋势、排名、同环比 |
+| [sparkx-query-entity-metadata](skills/sparkx-query-entity-metadata/) | `get_entity_metadata` | 查询实体配置：广告活动 / 广告组 / 投放 / ASIN / 托管组的名称、状态、设置 |
+| [sparkx-query-operation-log](skills/sparkx-query-operation-log/) | `get_operation_log` | 查询操作日志：人工与 AI 的调价、调预算、启停记录 |
+| [sparkx-create-ai-group](skills/sparkx-create-ai-group/) | `create_sd_ai_managed_group` / `save_sp_sb_ai_managed_group` | 创建 SP、SB 或 SD AI 托管组 |
+| [sparkx-edit-ai-group](skills/sparkx-edit-ai-group/) | `edit_sd_ai_managed_group` / `save_sp_sb_ai_managed_group` | 编辑单个或批量 AI 托管组 |
+| [sparkx-delete-ai-group](skills/sparkx-delete-ai-group/) | `delete_ai_managed_group` | 删除托管组，并释放或迁移其中的 Campaign |
 
 **可选（4 个）**——进阶分析场景，装完必装 Skills 后按需添加：
 
 | Skill | 用途 |
 |-------|------|
-| [weekly-ads-report](skills/weekly-ads-report/) | 广告周报：KPI 环比、7 天趋势、异常摘要、Top 变化榜、下周行动建议 |
-| [monthly-ads-report](skills/monthly-ads-report/) | 广告月报：全月 KPI（环比 + 同比）、结构拆解、商品与关键词分析 |
-| [ads-structure-analysis](skills/ads-structure-analysis/) | 广告结构分析：按广告类型 / 站点 / 组合等维度定位结构错配 |
-| [product-diagnosis](skills/product-diagnosis/) | 商品诊断：ASIN 健康度分层、变体对比、去留优化建议 |
+| [sparkx-weekly-ads-report](skills/sparkx-weekly-ads-report/) | 广告周报：KPI 环比、7 天趋势、异常摘要、Top 变化榜、下周行动建议 |
+| [sparkx-monthly-ads-report](skills/sparkx-monthly-ads-report/) | 广告月报：全月 KPI（环比 + 同比）、结构拆解、商品与关键词分析 |
+| [sparkx-ads-structure-analysis](skills/sparkx-ads-structure-analysis/) | 广告结构分析：按广告类型 / 站点 / 组合等维度定位结构错配 |
+| [sparkx-product-diagnosis](skills/sparkx-product-diagnosis/) | 商品诊断：ASIN 健康度分层、变体对比、去留优化建议 |
 
 **安装方式**（任选其一）：
 

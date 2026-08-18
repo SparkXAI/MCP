@@ -1,0 +1,232 @@
+---
+name: sparkx-query-operation-log
+version: 1.1.0
+description: >-
+  Query SparkX AI platform operation logs: user and AI action history on ad entities.
+  For tracking change history, auditing operations, troubleshooting issues.
+  Keywords: operation log, change history, who changed what, bid adjustment records,
+  budget adjustment, AI auto-adjustment, pause/enable records, operation audit,
+  modification timeline, ad adjustment log
+---
+
+# Query Operation Log Skill
+
+## MCP Tool
+
+This skill maps to MCP tool: **`get_operation_log`**. Required scope: `amazon_sa:ads_logs:read`.
+
+Profile, tenant, and user scope are resolved from the authenticated bearer token. `profileIds` is **required** — always call `get_user_authorized_context` first to obtain authorized profile IDs, then pass one or more into `profileIds`. Requested `profileIds` are intersected with the token's authorized set — an ID outside that set is silently dropped, not rejected (see Platform-Wide Rules below). If the user didn't specify a store, pass **all** authorized `profileIds`. Never pass `tenantId` or `userId`; the server derives them from the token.
+
+**`userContext` (required)**: Must pass a non-empty string on every call. Preserve the user's original query as much as possible, plus the agent's reason for calling this tool. Summarize if too long, max 100 characters.
+
+## Platform-Wide Rules
+
+**Before using this tool, read [`references/platform-notes.md`](references/platform-notes.md)** — it covers auth flow, permission scopes, error handling, pagination/date-limit tables, currency rules, the tool-selection decision tree, and implicit inference rules shared across all 3 read tools. That file ships inside this same skill folder, so it travels with this skill regardless of how it's packaged/installed. This SKILL.md only covers what's specific to `get_operation_log`.
+
+## ⚠️ Two Pagination Modes (decided by `entities`)
+
+`get_operation_log` behaves in one of two modes depending on `entities`. This is the most important thing to get right.
+
+**Mode A — Real pagination** (when `entities` is explicitly set to **exactly one non-`aiGroup` entity**, e.g. `["campaign"]`):
+- Supports `page` (1-based, default 1) + `pageSize` (default 100, max 1,000). Response includes `page`, `pageSize`, `hasNextPage`.
+- **To get the complete history, loop `page` (incrementing each call) while `hasNextPage=true`.** This is the preferred way to retrieve a complete change history for one entity type — no date-splitting needed. (`hasNextPage` is the real-pagination equivalent of `truncated`.)
+
+**Mode B — limit-only** (when `entities` is empty/omitted, has **multiple** entities, or is **only `aiGroup`**):
+- `page` is ignored. A single call returns at most `pageSize` rows (default 100, max 1,000; **`aiGroup`-only max 10,000**), time-descending. Response includes `limit` and `truncated`.
+- `truncated=true` means more matched than could be returned. **You cannot page.** Handle it in this order:
+  1. **Prefer steering the user to a single entity.** If they really only care about one kind of change ("just budget changes", "just campaign pause/enable"), guide them to narrow `entities` to a single non-`aiGroup` entity → this switches to Mode A, where you can page through the complete set. Only do this when it matches the user's actual intent; if they genuinely want the full cross-entity history, don't silently narrow — say the result is a partial view.
+  2. **Split the date range** into non-overlapping sub-windows and recurse (see "Getting a Complete Count" below).
+  3. **Add filters** (`resourceIds`/`actionType`/`operationType`/`changeBy`) as a last resort — this changes *what* you're searching for, so flag the result as partial when you do.
+  4. `aiGroup` is inherently limit-only (but its 10,000 cap is usually enough for a window).
+
+## When to Use
+
+Use this tool when the user needs any of the following:
+- Query ad operation history
+- Find out who made what changes (manual vs AI)
+- Track AI auto-adjustment records (bid, budget, etc)
+- View bid/budget adjustment history
+- Audit a specific campaign's change timeline
+- Troubleshoot ad status changes (pause, enable, archive)
+- Count how many changes of a given type happened, grouped by operator or entity (do this by pulling rows and aggregating client-side — the tool itself has no server-side `groupBy`)
+
+See the Tool Selection Decision Tree above if the user's ask might belong to `get_ads_perf` or `get_entity_metadata` instead.
+
+## DSL Parameter Format
+
+```json
+{
+  "userContext": "User's original query + agent's reason for calling",
+  "dateStart": "YYYY-MM-DD",
+  "dateEnd": "YYYY-MM-DD",
+  "profileIds": [1234567890123456],
+  "entities": ["entity_type_list"],
+  "resourceIds": [{"idEntity": "campaign", "ids": [123456]}],
+  "changeBy": {"operator": "IN", "values": ["ai", "manual"]},
+  "actionType": {"operator": "IN", "values": ["Bid Increased"]},
+  "operationType": {"operator": "IN", "values": ["Campaign Paused"]},
+  "campaignTypes": ["campaign_type_list"],
+  "targetTypes": ["target_type_list"],
+  "placementTypes": ["placement_type_list"],
+  "page": 1,
+  "pageSize": 100
+}
+```
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| profileIds | array[long] | **Yes** | — | Profile IDs from `get_user_authorized_context.profileIds`. Intersected with token's authorized set |
+| dateStart | string | **Yes** | — | Start date `YYYY-MM-DD`. Max span vs `dateEnd` is 90 inclusive calendar days (see platform-notes.md for the precise off-by-one-safe definition); cannot be more than 15 months before today |
+| dateEnd | string | **Yes** | — | End date `YYYY-MM-DD` |
+| userContext | string | **Yes** | — | User's original query + reason, max 100 chars |
+| entities | array[string] | No | all entities except `audience` | Entity type filter |
+| resourceIds | array[object] | No | — | Resource ID filter (see below) |
+| changeBy | object | No | — | Operator filter (see below) |
+| actionType | object | No | — | Action type filter — coarse-grained (see below). ⚠️ **Only use values from the [actionType enum table](references/field-reference.md#actiontype)** — do not invent or guess values |
+| operationType | object | No | — | Operation type filter — fine-grained (see below). ⚠️ **Only use values from the [complete operationType table](references/field-reference.md#complete-operationtype-values-by-entity)** — do not invent or guess values |
+
+> **Recommended strategy**: when unsure which exact `operationType` values to use, first query with `actionType` (coarse-grained) to explore results and identify the specific `operationType` values appearing in the returned rows, then follow up with `operationType` (fine-grained) for precise filtering.
+| campaignTypes | array[string] | No | — | Campaign type filter |
+| targetTypes | array[string] | No | — | Targeting type filter (see below) |
+| placementTypes | array[string] | No | — | Placement type filter (see below) |
+| page | int | No | 1 | Page number (1-based). **Only effective when `entities` is exactly one non-`aiGroup` entity** (Mode A); ignored for multi-entity or `aiGroup`-only queries (Mode B) |
+| pageSize | int | No | 100 | Max rows per page (Mode A) / per call (Mode B). Non-`aiGroup` max **1,000**; **`aiGroup`-only max 10,000**. Results are time-descending |
+
+## Parameter Details, ChangeLogVO Field Reference
+
+**See [`references/field-reference.md`](references/field-reference.md)** for the complete parameter enum reference (entities, resourceIds, campaignTypes, changeBy, actionType, operationType, targetTypes, placementTypes) and the ChangeLogVO response field table.
+
+## Response Structure
+
+```json
+{
+  "isError": false,
+  "toolName": "get_operation_log",
+  "rows": [
+    {
+      "entity": "campaign",
+      "entityName": "Brand-SP-Auto-US",
+      "amazonEntityId": 298539385213868,
+      "entityId": 298539385213868,
+      "operationType": "DailyBudget Increased",
+      "profileId": 4404871489220462,
+      "aiGroupName": "Growth-Group-1",
+      "amazonCampaignId": 298539385213868,
+      "campaignName": "Brand-SP-Auto-US",
+      "campaignType": "sponsoredProducts",
+      "amazonAdGroupId": null,
+      "adGroupName": null,
+      "changeField": "dailyBudget",
+      "previousValue": "50.0",
+      "newValue": "65.0",
+      "countryCode": "US",
+      "currencyCode": "USD",
+      "createdDate": "2024-06-15 14:30:00",
+      "changedBy": "ai"
+    }
+  ],
+  "rowCount": 1,
+  "limit": 100,
+  "truncated": false,
+  "effectiveProfileIds": [4404871489220462]
+}
+```
+
+The pagination fields differ by mode: **Mode A (real pagination)** returns `page`, `pageSize`, `hasNextPage`; **Mode B (limit-only)** returns `limit`, `truncated` (as shown above).
+
+| Field | Type | Description |
+|---|---|---|
+| `isError` | boolean | Whether the call errored — check this before reading `rows` |
+| `toolName` | string | Tool name |
+| `rows` | array[ChangeLogVO] | Log entries, time-descending |
+| `rowCount` | int | Number of rows returned on this page/call |
+| `page` / `pageSize` | int | **Mode A only.** Current page and page size |
+| `hasNextPage` | boolean | **Mode A only.** `true` → fetch `page+1` to continue; loop until `false` for the complete set. (Semantically equivalent to Mode B's `truncated`) |
+| `limit` | int | **Mode B only.** The `pageSize` cap actually applied |
+| `truncated` | boolean | **Mode B only. `true` means more matched than `limit` could return.** You cannot page — steer the user to a single entity (→ Mode A), else split the date range into non-overlapping sub-windows, else add filters as a last resort (flagging the result as partial) |
+| `hint` | string | Guidance message, present when `truncated=true` |
+| `effectiveProfileIds` | array[long] | Profile IDs actually applied after intersecting with the token's authorized set |
+
+On error, the response instead follows the shared error envelope (`isError:true`, `errorType`, `message`, possibly `dimension`/`retryAfterSeconds`) described in Platform-Wide Rules above.
+
+## Getting a Complete Count (handling large result sets rigorously)
+
+There is no server-side `groupBy` for this tool — to answer "how many budget changes did each operator make" or "count of placement adjustments per campaign" **completely and correctly**, first pull the complete row set, then aggregate client-side. How you get the complete set depends on the mode:
+
+**If you can scope to a single non-`aiGroup` entity (Mode A) — preferred:** loop `page` (incrementing each call) while `hasNextPage=true`, collecting rows; raise `pageSize` toward the max (1,000) to cut round trips. Once `hasNextPage=false` you have the complete set — aggregate and you're done. No date-splitting needed.
+
+**Otherwise (Mode B: multi-entity or `aiGroup`-only) — use date-splitting:**
+1. Issue the query with your filters and check `truncated`.
+2. **If `truncated=false`**: the rows are complete for that window — aggregate client-side and you're done.
+3. **If `truncated=true`**: split the date range into two **non-overlapping** sub-windows (bisect at the midpoint, second half starting the day after the first half ends — never share a date), and recursively repeat on each half.
+4. Only sum/merge counts across **non-overlapping** sub-windows — overlapping ranges double-count.
+5. **If a single day still returns `truncated=true`** on its own (more than the cap — 1,000, or 10,000 for `aiGroup`-only — in one day for your filters), this tool **cannot guarantee a complete count** for that day. Don't report a partial number as exact — tell the user it's a lower bound (e.g. "at least 1,000 changes on 2024-06-15; can't return an exact count for a single day this active") and suggest scoping to a single entity (Mode A) or narrowing by `resourceIds`/`operationType`.
+
+## Examples
+
+**Query last 7 days of AI auto-adjustment records:**
+```json
+{
+  "profileIds": [4404871489220462],
+  "dateStart": "2026-07-13",
+  "dateEnd": "2026-07-19",
+  "changeBy": {"operator": "IN", "values": ["ai"]},
+  "pageSize": 100,
+  "userContext": "Last 7 days of AI auto-adjustments"
+}
+```
+
+**All operations on a specific campaign (resolve name to ID first via get_entity_metadata, then):**
+```json
+{
+  "profileIds": [4404871489220462],
+  "dateStart": "2026-06-01",
+  "dateEnd": "2026-06-30",
+  "resourceIds": [{"idEntity": "campaign", "ids": [298539385213868]}],
+  "pageSize": 1000,
+  "userContext": "Full change history for this campaign"
+}
+```
+
+**Budget increases made manually by users (not AI/automation):**
+```json
+{
+  "profileIds": [4404871489220462],
+  "dateStart": "2026-06-01",
+  "dateEnd": "2026-06-30",
+  "actionType": {"operator": "IN", "values": ["Budget Increased"]},
+  "changeBy": {"operator": "IN", "values": ["manual"]},
+  "pageSize": 100,
+  "userContext": "Manual budget increases this month"
+}
+```
+
+## Notes
+
+- **`operationType` and `actionType` are closed enums** — you MUST only use values listed in [`references/field-reference.md`](references/field-reference.md). Never invent, guess, or interpolate values. If unsure whether a value exists, consult the reference table before sending the request. Values are English display strings (e.g. `"DailyBudget Increased"`, `"Campaign Paused"`) — pass them exactly as listed, case-sensitive
+- `dateStart`/`dateEnd` request params use `YYYY-MM-DD`; `createdDate` in returned rows is a full UTC timestamp
+- `dateEnd` must be equal to or later than `dateStart`
+- Max date span is 90 days, max lookback is 15 months — these are hard limits, not auto-truncation. Split longer windows into multiple calls
+- **Pagination has two modes (decided by `entities`)**: a single non-`aiGroup` entity → real pagination (`page` + `pageSize`, loop until `hasNextPage=false`); multi-entity or `aiGroup`-only → limit-only (`pageSize` caps the call, max 1,000 / `aiGroup` 10,000, check `truncated`). For a complete count in limit-only mode, prefer steering to a single entity, otherwise use the non-overlapping date-split procedure above
+- When `entities` is not specified, returns operations on all entity types **except `audience`**
+- `profileIds` is **required**. Always call `get_user_authorized_context` first. If the user doesn't name a store, pass all authorized `profileIds`
+- Requested `profileIds` are intersected with the authorized set, not rejected outright — check `effectiveProfileIds`
+- `changeBy`, `actionType`, and `operationType` should be passed as objects with explicit `operator`/`values` (not bare arrays)
+- To find a resource by name (campaign name, keyword text, ASIN) rather than ID, resolve it first via `get_entity_metadata`, then pass the ID into `resourceIds`
+- No server-side aggregation (`groupBy`) — aggregate client-side after pulling rows, splitting non-overlapping date windows whenever `truncated=true`
+- When `profileIds` spans multiple stores, map each row's `profileId` to a `profileName` before describing results
+- Amounts in `previousValue`/`newValue` are always local currency — read the row's `currencyCode`, don't assume USD
+- `placementTypes` has exactly 4 confirmed values — don't invent additional ones
+- On error, check `errorType` and handle per the guidance above (e.g. `rate_limited` means wait `retryAfterSeconds` before retrying, not that the question is unanswerable)
+
+## Reference Docs
+
+- Shared cross-tool behavior (auth, errors, pagination, dates, currency, decision tree, inference rules): [`references/platform-notes.md`](references/platform-notes.md)
+- Field dictionary (parameter enums, ChangeLogVO fields): [`references/field-reference.md`](references/field-reference.md)
+- Enum i18n (ZH/EN/JA display labels for changeBy, actionType, operationType, entity — use this when presenting log entries to the user or translating between API values and localized display text): [`references/enum-i18n.md`](references/enum-i18n.md)
+- Query examples:
+  - [AI bid adjustment records (and how to broaden to all AI ops)](references/example-ai-bid-changes.md)
+  - [All bid-change operations on a specific campaign](references/example-campaign-operations.md)
+  - [SP budget changes (fine-grained filter)](references/example-user-budget-changes.md)
+  - [Pause operations](references/example-pause-operations.md)
+  - [Resolving a name to an ID before querying logs](references/example-resolve-name-to-id.md)
