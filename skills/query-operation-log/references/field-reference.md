@@ -268,22 +268,16 @@ Operation type filter (fine-grained). More precise than `actionType`. Always pas
 | `aiGroup` | `Enable budget dayparting (optimization method: rule)` |
 | `aiGroup` | `Disable budget dayparting` |
 | `aiGroup` | `Enable placement multiplier (optimization method: AI)` |
-| `aiGroup` | `Enable placement multiplier (optimization method: rule)` |
 | `aiGroup` | `Disable placement multiplier` |
 | `aiGroup` | `Enable bid dayparting (optimization method: AI)` |
-| `aiGroup` | `Enable bid dayparting (optimization method: rule)` |
 | `aiGroup` | `Disable bid dayparting` |
 | `aiGroup` | `Enable adjustment base bids base on performance (optimization method: AI)` |
-| `aiGroup` | `Enable adjustment base bids base on performance (optimization method: rule)` |
 | `aiGroup` | `Disable adjustment base bids base on performance` |
 | `aiGroup` | `Enable target harvesting (optimization method: AI)` |
-| `aiGroup` | `Enable target harvesting (optimization method: rule)` |
 | `aiGroup` | `Disable target harvesting` |
 | `aiGroup` | `Enable adding negative targets (optimization method: AI)` |
-| `aiGroup` | `Enable adding negative targets (optimization method: rule)` |
 | `aiGroup` | `Disable adding negative targets` |
 | `aiGroup` | `Enable pause targets (optimization method: AI)` |
-| `aiGroup` | `Enable pause targets (optimization method: rule)` |
 | `aiGroup` | `Disable pause targets` |
 | `aiGroup` | `Enabled budget reallocation` |
 | `aiGroup` | `Disabled budget reallocation` |
@@ -291,13 +285,12 @@ Operation type filter (fine-grained). More precise than `actionType`. Always pas
 | `aiGroup` | `Disabled bidding range` |
 | `aiGroup` | `Set the coefficient` |
 
-> **Note on Rule variants**: `(optimization method: rule)` entries are confirmed for
-> budget dayparting only (prod log 2026-08-18). Other action spaces follow the same
-> pattern but the rule variant has not been independently observed in logs yet —
-> include them in `operationType` filters when searching for Rule mode changes, but
-> verify the returned rows rather than assuming the exact string in advance.
-> `budgetRedistribute` and `bidAmazonBusiness` are `noRule` capabilities and have
-> **no** rule variant.
+> **Rule variants:** only the budget-dayparting Rule string above is confirmed in a
+> production log (2026-08-18). Do not construct or submit inferred Rule strings for
+> other action spaces. Query with the broader `actionType` (or without an
+> `operationType` filter), inspect the exact returned value, and only then reuse that
+> observed string in a narrower follow-up query. `budgetRedistribute` and
+> `bidAmazonBusiness` are `noRule` capabilities and have no Rule variant.
 
 > **aiGroup action-space changeField values**: the `changeField` is the action-space
 > switch name (e.g. `budgetDaypartStatus`, `bidAdPlaceStatus`). The `newValue`/
@@ -307,11 +300,11 @@ Operation type filter (fine-grained). More precise than `actionType`. Always pas
 > |---|---|---|
 > | `0` | Off / disabled | "Disable ..." |
 > | `1` | On, AI mode | "Enable ... (optimization method: AI)" |
-> | `3` | On, Rule mode | "Enable ... (optimization method: rule)" |
+> | `3` | On, Rule mode | Confirmed for budget dayparting; do not infer an exact `operationType` for other action spaces |
 >
-> Value `3` in the log is the **result** of `aiActionSettings.xxxStatus=1` +
-> `aiAutomation.<modeField>=1` (Rule mode). It is not a direct write value in the
-> two-layer model — the log merges both layers into a single value for display.
+> Value `3` has been observed for budget dayparting. Treat it as a returned display
+> value, not a direct write value, and do not generalize it to an unobserved action
+> space without evidence from that action space's returned rows.
 
 Use `actionType` for broad filtering; use `operationType` when you need precise control over specific entity+action combinations.
 

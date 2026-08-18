@@ -88,8 +88,8 @@ How to determine the ad type, in order of preference:
 3. **Confirm before creating - show everything that will take effect.** Echo the
    **complete** config, not just the basics: ad type, group name, the campaigns (by
    name), `targetType`/`optimizeType`, target ACOS, budget settings, `aiPersonality`,
-   `campaignNameSign`, and **every action-space switch you're enabling** (bid / budget
-   / target / struct optimization, branded / competitor). For anything you're not
+   `campaignNameSign`, and **every supported action-space switch you're enabling**
+   (bid / budget / target / struct optimization). For anything you're not
    setting, say it will use the platform default - but **don't invent specific default
    values** (the tool schema doesn't define them); only state a concrete default if
    you've read it back or it's documented. Get an explicit go-ahead. This matters most
@@ -110,9 +110,8 @@ How to determine the ad type, in order of preference:
 
    **Before sending, self-validate the front-end-only rules MCP bypasses** (see
    platform-notes "MCP bypasses the platform UI's validation"):
-   - **Action-space support** - only enable a capability that supports the requested
-     mode (AI or Rule) for this ad type
-     ([`references/action-space-matrix.md`](references/action-space-matrix.md));
+   - **Action-space support** - only enable a capability that supports AI for this ad
+     type ([`references/action-space-matrix.md`](references/action-space-matrix.md));
      if the user asked for one that isn't supported for their ad type, tell them and
      skip it - don't send a silently-ignored field.
    - **Budget** - sanity-check what you reliably can (positive; JP integer-only;
@@ -130,12 +129,9 @@ How to determine the ad type, in order of preference:
      group; and a switch sent without its companion field (`acosType` without `acos`,
      `budgetType` without `budget`, dynamic budget without `numType`+`num`) is rejected.
      Catch these up front rather than leaning on the backend error.
-   - **Branded / competitor word-list fields apply on every version.** The backend does
-     **not** filter these by group version - v1/v2 is a UI-layer distinction only - so
-     `brandedStatus` / `competitorStatus` and their lists are accepted and take effect.
-     Don't skip them just because a group looks like v1. You still can't invent the
-     word-list IDs: the user must supply them (or pick from the UI). What v1 *does* reject
-     is scheduling params (see the scheduling note below).
+   - **Word-list settings are not supported.** Do not send branded, non-branded,
+     competitor, harvest-blacklist, or negative-target-blacklist fields, even if the
+     routed schema exposes them. Tell the user to configure word lists in the platform.
 5. **Verify it landed - group AND campaigns.** Don't trust the envelope alone:
    - Re-read the group (`entity='aiGroup'`) -> confirm it exists with the intended
      top-level settings.
@@ -160,6 +156,10 @@ How to determine the ad type, in order of preference:
 
 The current write schemas do not expose managed-group scheduling fields. Do not invent
 `scheduleType` or schedule-date parameters; scheduling must be done in the platform.
+
+The current tools also cannot create a managed group from a platform template. Build
+the supported configuration explicitly from the user's requirements, or tell the user
+to use the platform when a template-based setup is required.
 
 ## AI on vs off at creation
 

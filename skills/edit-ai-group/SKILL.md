@@ -59,9 +59,8 @@ biggest trap here.
    - **ACOS / ROAS / Budget type are mutually exclusive** - the `*Type` decides which
      value field to send; sending the wrong companion (or both) fails. See
      [`references/edit-sd.md`](references/edit-sd.md).
-   - **Action-space support** - only enable a capability that supports the requested
-     mode (AI or Rule) for this ad type
-     ([`references/action-space-matrix.md`](references/action-space-matrix.md)).
+   - **Action-space support** - only enable a capability that supports AI for this ad
+     type ([`references/action-space-matrix.md`](references/action-space-matrix.md)).
      If the user asks for one that isn't supported for their ad type / mode, tell them
      and skip it - don't send a silently-ignored field.
    - **Budget** - enforce only rules you can determine reliably (positive, JP
@@ -79,11 +78,9 @@ biggest trap here.
      `budget > 0`, `budgetRatio <= 10000`, dynamic-budget `num > 0` (`numType=1` <= 1000,
      `numType=2` <= 100000), and action-space ranges (placement/B2B `0`-`900`, bid-range
      percentage `0.01`-`100`). Don't lean on the backend for these.
-   - **Branded / competitor word-list fields apply on every version.** The backend does
-     **not** filter word-list fields by group version (v1/v2 is UI-only); prod-confirmed
-     that `brandedStatus` / `competitorStatus` write and take effect on v1. Send them
-     normally with their companion fields - the only thing you can't invent is the list
-     IDs (user must supply). Do not withhold them because a group looks like v1.
+   - **Word-list settings are not supported.** Do not send branded, non-branded,
+     competitor, harvest-blacklist, or negative-target-blacklist fields, even if the
+     routed schema exposes them. Tell the user to configure word lists in the platform.
 4. **Confirm before applying - especially for bulk and for running groups.** Echo the
    exact changes (field: old -> new) per group, and how many groups are affected. For a
    running group, note that some changes may not apply while AI is on. Get an explicit
@@ -109,6 +106,14 @@ The current managed-group write tools expose no `scheduleType`, `scheduleDate`,
 params on v1 groups (prod-confirmed 2026-08-13). Do not invent these parameters.
 Creating, editing, or deleting a managed-group schedule is not available through this
 MCP version; tell the user to use the platform until the tool schema adds scheduling.
+
+## RBA mode restriction
+
+- The tool may switch an existing group from **RBA (Rule mode) to AI mode**.
+- It must **not** switch a group from **AI mode to RBA**.
+- RBA condition/action details cannot currently be read or edited through MCP. Do not
+  infer the current RBA configuration or attempt to preserve, modify, or recreate it.
+  If the user requests an RBA configuration change, tell them to use the platform.
 
 ## Bulk / batch edits
 

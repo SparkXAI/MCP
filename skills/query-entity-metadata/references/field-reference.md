@@ -29,7 +29,8 @@
 
 | Field | Type | Enum |
 |---|---|---|
-| campaignId | string | — |
+| campaignId | int | SparkX AI internal auto-increment campaign ID; use this value for managed-group write-tool `campaignIds` |
+| amazonCampaignId | string | Amazon campaign ID; use this value to link performance/log data, not as a managed-group write ID |
 | campaignName | string | — |
 | campaignType | string | `sponsoredProducts` / `sponsoredBrands` / `sponsoredDisplay` |
 | campaignState | string | `enabled` / `paused` / `archived` |
@@ -39,6 +40,12 @@
 | isAiCreate | int | `1` / `0` |
 | dailyBudget | number | — |
 | currentBudget | number | — |
+
+**Campaign ID contract:** `campaignId` and `amazonCampaignId` are different identifiers.
+Managed-group create/edit tools accept the internal integer `campaignId`. When starting
+from an Amazon campaign ID returned by `get_ads_perf` or `get_operation_log`, filter this
+entity by `amazonCampaignId`, then use the matched row's internal `campaignId`. Never
+coerce a long Amazon ID into the write field or infer one identifier from the other.
 
 **⚠️ "How much budget is left today?" cannot be reliably answered from `dailyBudget`/`currentBudget` alone.** These are configuration values, not a live spend ledger, and can change intraday. Combining them with `get_ads_perf`'s today's-`Spend` doesn't produce a reliable real-time remaining-budget figure either, since that metric is subject to the T+2 processing delay (see PLATFORM_NOTES.md). Tell the user this can't be computed reliably rather than presenting a subtraction as if it were precise.
 
@@ -66,6 +73,9 @@
 ```
 ```json
 {"campaignName": {"like": "%brand%"}}
+```
+```json
+{"amazonCampaignId": {"in": ["298539385213868"]}}
 ```
 ```json
 {"campaignStartDate": {">=": "20260101", "<=": "20260131"}}
@@ -141,21 +151,15 @@ Sourced from a separate backend (`td-api getSaAiGroupList`), aggregated from the
 `aiGroupId`, `aiGroupName`, `aiStatus` (`0`=AI never turned on, `1`=AI currently running, `2`=AI turned off), `campaignType`, `targetType` (`1`=Drive Growth/`2`=Maintain Stable Orders/`3`=Event Boost), `targetAcos`, `aiPersonality` (1-5), `aiPersonalityUpdatedAt`, `profileId`, `profileName`, `countryCode`, `numCampaign`, `numProduct`, `campaignNameSign`, `createTime`, `createBy`, `createUid`, `hasEditAuth`, `isAutoPacing`, `statusOnDate`, `lastStatusOnDate`, `lastStatusOffDate`, `lastOnDays`, `lastOnDaysBegin`, `lastOnDaysEnd`, `totalBudget`, `totalDailyBudget`, `sbStyleNum`, `aiActionSettings`, `aiAutomation`
 
 - **`sbStyleNum`** (int/null): the **count** of SB ad styles in use — e.g. "3" means 3 different SB ad style/formats are running. This can answer "how many SB ad styles is this group using," but **not** "which specific style(s)" (product collection / store spotlight / video, etc) — that breakdown is not exposed by this field and is not otherwise documented in the platform spec. Don't infer or invent a style name from the count.
-- **`aiActionSettings`** (object): action-space on/off switches, returned as a
-  nested structure with 5 sub-modules: `bidOptimization`, `structOptimization`,
-  `budgetOptimization`, `targetOptimization`, `brandOptimization`. Each sub-module
-  contains `xxxStatus` fields where `0`=off (action space disabled), `1`=on (active).
-  When on, the mode (AI vs Rule) is determined by the corresponding
-  `aiAutomation` entry (see below). Read-side field names may differ from write-side
-  field names (e.g. read `budgetDaypartStatus` vs write `budgetDaypartActionStatus`).
-- **`aiAutomation`** (object): rule mode switches, returned as a map keyed by rule
-  number (e.g. `"13"`, `"19"`). Each entry has `status` (`0`=AI mode, `1`=Rule mode),
-  plus Rule template contents (`condition`, `excuteDays`, etc.) when in Rule mode.
-  An absent key means no Rule template exists for that action space. To determine
-  the effective mode of an action space on read: check both
-  `aiActionSettings.xxxStatus` (is it on?) and the corresponding `aiAutomation`
-  entry's `status` (AI=0 or Rule=1?). The `noRule` capabilities
-  (`budgetRedistribute`, `bidAmazonBusiness`) have no `aiAutomation` entry — only on/off.
+- **`aiActionSettings`** (object): contains action-space on/off indicators. A relevant
+  `xxxStatus` value of `0` means off and `1` means on.
+- **`aiAutomation`** (object): contains the corresponding mode indicators for action
+  spaces that support both modes. A mode value of `0` means AI and `1` means Rule/RBA.
+  Use the write-skill mapping to pair an action-space switch with its mode field; do
+  not decide the mode from `aiActionSettings` alone.
+- The readable contract stops at the on/off and AI/RBA mode indicators. RBA condition,
+  schedule, and action/template details are not supported as a stable readable schema.
+  Do not infer or reconstruct those details from partial object contents.
 
 **Filterable fields**:
 

@@ -16,37 +16,16 @@ and there is no `acosType`/`budgetType` machinery. In **operation-based batch mo
 Flat operations use the type selectors and companion values inside `batchParams`; see
 [`batch.md`](batch.md).
 
-## Action-space mode: two layers, switch + mode
+## Action-space switch and mode restriction
 
-An action space has two independent layers:
-
-1. **`aiActionSettings.xxxStatus`** — the action-space **on/off switch**.
-   `0` = off (neither AI nor Rule runs), `1` = on (active).
-
-2. **`aiAutomation` mode fields** — when the switch is on, the corresponding
-   `aiAutomation` field controls the **mode**: `0` = AI mode (AI auto-decides),
-   `1` = Rule mode (condition/action template governs). The exact field name per
-   action space is in [`field-reference.md`](field-reference.md) under `aiAutomation`.
-
-| `aiActionSettings.xxxStatus` | `aiAutomation` mode field | Effect |
-|---|---|---|
-| `0` | (don't care) | **Off** — action space disabled entirely |
-| `1` | `0` | **AI mode** — AI auto-decision |
-| `1` | `1` | **Rule mode** — Rule template (condition/action) governs |
-
-To switch an action space between AI and Rule mode on edit:
-- **AI -> Rule**: set the corresponding `aiAutomation` mode field to `1` (keep
-  `aiActionSettings.xxxStatus = 1`). Use the exact field name from
-  [`field-reference.md`](field-reference.md).
-- **Rule -> AI**: set the corresponding `aiAutomation` mode field to `0` (keep
-  `aiActionSettings.xxxStatus = 1`).
-- **Off**: set `aiActionSettings.xxxStatus = 0`.
-
-> The tool description says "Does NOT allow switching from AI to Rule" — this refers
-> to the fact that the write tool does not expose Rule condition/action configs
-> (the 7x24 matrix, etc.). But switching the mode flag itself via the `aiAutomation`
-> mode field IS supported. You can toggle AI/Rule mode, but you cannot edit the Rule
-> template contents through this tool — only through the platform UI.
+- `aiActionSettings.xxxStatus` is the action-space switch: `0` = off, `1` = on.
+- When the switch is on, the corresponding `aiAutomation` mode field is `0` = AI or
+  `1` = Rule/RBA. Use the exact mapping in `field-reference.md`.
+- Editing may set the mode field to `0` to switch **Rule/RBA -> AI**, but must not set
+  it to `1` to switch **AI -> Rule/RBA**.
+- Metadata may expose the on/off and AI/RBA mode indicators, but RBA conditions,
+  schedules, and actions cannot be read or edited through this MCP version. Do not
+  infer, preserve, reconstruct, or modify an RBA template.
 
 ## Editable fields
 
@@ -72,7 +51,7 @@ either.)
 Action-space field names, coupling rules, and the SP/SB support differences are in
 [`field-reference.md`](field-reference.md), [`coupling-rules.md`](coupling-rules.md),
 and [`action-space-matrix.md`](action-space-matrix.md). The same rules apply on edit:
-enable only capabilities supported for the requested mode (AI or Rule) for this ad type; `noRule` capabilities take
+enable only capabilities supported (as AI) for this ad type; `noRule` capabilities take
 no Rule params; SP-only fields sent to SB should be rejected (2026-08-14 spec) but may
 still be silently ignored today - either way don't send them (say so).
 

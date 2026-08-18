@@ -156,7 +156,8 @@ Fields that get this treatment: all `*State` fields (campaignState/adGroupState/
   "toolName": "get_entity_metadata",
   "rows": [
     {
-      "campaignId": "298539385213868",
+      "campaignId": 826117,
+      "amazonCampaignId": "298539385213868",
       "campaignName": "Brand-SP-Auto-US",
       "campaignType": "sponsoredProducts",
       "campaignState": "enabled",
@@ -200,6 +201,7 @@ On error, the response instead follows the shared error envelope (`isError:true`
 - `profile` **can** be queried standalone as its own entity
 - `automationRule` **requires** `amazonCampaignId` in filters, and does not support sort/pagination
 - `campaignStartDate`/`campaignEndDate` use `YYYYMMDD` (Ymd) — different from the `YYYY-MM-DD` used by `dateStart`/`dateEnd` on the other two tools
+- For campaign rows, `campaignId` is the internal integer ID used by managed-group write tools; `amazonCampaignId` is the Amazon ID used to link performance/log data. Never substitute one for the other
 - `asin` entity's currency handling is the one exception to "multi-profile = USD" — check each row's `currency` field
 - When querying across multiple `profileIds`, verify whether the entity's rows carry a `profileId` field (e.g. `asin` does); if not, query per-profile or cross-reference before merging
 - `targetAcos` (aiGroup entity) is confirmed ×100/percentage, same as performance `ACOS` — don't re-scale, but append `%` when presenting it
