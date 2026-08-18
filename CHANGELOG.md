@@ -4,11 +4,16 @@
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-08-18
+
 ### 变更
 
 - MCP 连接新增 OAuth 授权，与现有 MCP Token 两种方式并行支持。
 - Plugin 内置配置继续使用 MCP Token；支持 OAuth 的客户端可通过 Custom Connector 或手动配置连接。
 - 更新 README、安装说明、连接验证和 401 排障指引，明确 OAuth 与 MCP Token 两条配置路径。
+- 新增 3 个 **1.0.0 必装 Skills**：`create-ai-group`、`edit-ai-group`、`delete-ai-group`，覆盖 SP、SB、SD AI 托管组的创建、编辑和删除。
+- 明确托管组写操作会直接修改线上配置，要求执行前确认、执行后回查。
+- 补充当前能力边界：不支持排期、模板和词库设置；RBA 配置不可读取或修改，支持 RBA → AI，不支持 AI → RBA。
 
 ## [1.0.0] - 2026-07-28
 

@@ -2,7 +2,7 @@
 
 配合 SparkX AI MCP 使用的官方 Skills，分两类：
 
-- **必装（3 个）**：基础查询能力。**没有它们，MCP 查询的出错率会明显上升**，请务必安装。
+- **必装（6 个）**：基础查询与托管组管理能力，请务必安装。
 - **可选（4 个）**：面向具体分析场景的进阶玩法，按需安装。
 
 ## 必装 Skills
@@ -10,12 +10,15 @@
 | Skill | 版本 | 对应 MCP Tool | 所需 Scope | 用途 |
 |-------|------|--------------|-----------|------|
 | [query-ads-performance](query-ads-performance/) | 1.0.0 | `get_ads_perf` | `amazon_sa:performance:read` | 查询广告效果指标：花费、ACOS、ROAS、趋势、排名、同环比 |
-| [query-entity-metadata](query-entity-metadata/) | 1.0.0 | `get_entity_metadata` | `amazon_sa:ads_configuration:read` | 查询实体配置：广告活动 / 广告组 / 投放 / ASIN / 托管组的名称、状态、设置 |
-| [query-operation-log](query-operation-log/) | 1.0.0 | `get_operation_log` | `amazon_sa:ads_logs:read` | 查询操作日志：人工与 AI 的调价、调预算、启停记录 |
+| [query-entity-metadata](query-entity-metadata/) | 1.1.0 | `get_entity_metadata` | `amazon_sa:ads_configuration:read` | 查询实体配置：广告活动 / 广告组 / 投放 / ASIN / 托管组的名称、状态、设置 |
+| [query-operation-log](query-operation-log/) | 1.1.0 | `get_operation_log` | `amazon_sa:ads_logs:read` | 查询操作日志：人工与 AI 的调价、调预算、启停记录 |
+| [create-ai-group](create-ai-group/) | 1.0.0 | `create_sd_ai_managed_group` / `save_sp_sb_ai_managed_group` | 托管组写入权限 | 创建 SP、SB 或 SD AI 托管组 |
+| [edit-ai-group](edit-ai-group/) | 1.0.0 | `edit_sd_ai_managed_group` / `save_sp_sb_ai_managed_group` | 托管组写入权限 | 编辑单个或批量 AI 托管组 |
+| [delete-ai-group](delete-ai-group/) | 1.0.0 | `delete_ai_managed_group` | 托管组删除权限 | 删除 AI 托管组并释放或迁移 Campaign |
 
 ## 可选 Skills
 
-基于上面三个必装 Skill 的查询能力做进阶分析，装了必装 Skills 之后即可按需添加：
+基于必装 Skill 的查询能力做进阶分析，装了必装 Skills 之后即可按需添加：
 
 | Skill | 版本 | 用途 |
 |-------|------|------|
@@ -37,7 +40,7 @@
 
 ## 安装
 
-- **能让 AI 自己动手的助手**（Claude Code、ChatGPT Codex、Cursor 等）：把 Skill 目录发给它，说一句"帮我装上"。先装必装的三个，再按需加可选的。
+- **能让 AI 自己动手的助手**（Claude Code、ChatGPT Codex、Cursor 等）：把 Skill 目录发给它，说一句"帮我装上"。先装 6 个必装 Skill，再按需加可选的。
 - **聊天 / 界面类助手**（Claude 网页版或桌面 App、Cherry Studio、扣子 Coze 等）：在各自设置里手动添加（以 Claude 为例：设置 → Skills → 上传，逐个添加）。
 
 ## 目录结构
@@ -48,6 +51,9 @@ skills/
 ├── query-ads-performance/     # 必装
 ├── query-entity-metadata/     # 必装
 ├── query-operation-log/       # 必装
+├── create-ai-group/           # 必装
+├── edit-ai-group/             # 必装
+├── delete-ai-group/           # 必装
 ├── weekly-ads-report/         # 可选
 ├── monthly-ads-report/        # 可选
 ├── ads-structure-analysis/    # 可选

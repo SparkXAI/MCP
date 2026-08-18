@@ -1,6 +1,6 @@
 # SparkX AI MCP 安装说明
 
-> **🤖 致 AI Agent：如果你正在替用户执行本文档的配置，"配置 MCP"和"安装 Skills"是一个整体任务。** 完成 MCP 连接验证后，你必须继续安装 3 个必装 Skills（[`skills/`](../skills/) 目录，无需询问用户），然后逐个介绍该目录下标记为可选的 4 个 Skills 并询问用户是否安装。只配置连接不装 Skills 视为任务未完成。
+> **🤖 致 AI Agent：如果你正在替用户执行本文档的配置，"配置 MCP"和"安装 Skills"是一个整体任务。** 完成 MCP 连接验证后，你必须继续安装 6 个必装 Skills（[`skills/`](../skills/) 目录，无需询问用户），然后逐个介绍该目录下标记为可选的 4 个 Skills 并询问用户是否安装。只配置连接不装 Skills 视为任务未完成。
 
 完整走完 4 步：**选择授权方式 → 连接并验证 MCP → 安装 Skills → 开始使用**。全程约 5 分钟。
 
@@ -72,7 +72,7 @@ SparkX AI MCP 支持 OAuth 和 MCP Token 两种授权方式。
 1. 切换到 **Code** 标签页。
 2. 点击输入框旁的 **+ → Plugins → Add plugin**，打开 Plugin browser。
 3. 在 **Marketplaces** 中选择从 repository 添加，输入 `SparkXAI/MCP`。
-4. 找到并安装 **SparkX AI MCP**。Plugin 会同时安装 MCP server 和全部 7 个 Skills。
+4. 找到并安装 **SparkX AI MCP**。Plugin 会同时安装 MCP server 和全部 10 个 Skills。
 
 > **注意：**Claude Code Desktop 不支持 `/plugin` 命令。该命令仅用于 Claude Code CLI；桌面端请使用 Plugin browser。
 
@@ -82,7 +82,7 @@ SparkX AI MCP 支持 OAuth 和 MCP Token 两种授权方式。
 2. 点击右上角的 **Add → Add a marketplace**。
 3. 输入 `SparkXAI/MCP` 并添加 marketplace。
 4. 在 **Plugins** 中找到新添加的 marketplace，然后安装 **SparkX AI MCP**。
-5. 新建一个 Codex 任务，MCP server 和全部 7 个 Skills 将在新任务中可用。
+5. 新建一个 Codex 任务，MCP server 和全部 10 个 Skills 将在新任务中可用。
 
 > **注意：**ChatGPT 桌面端 Codex 不支持 `/plugin` 或 `/plugins` 命令。`/plugins` 仅用于 Codex CLI；桌面端必须通过左侧边栏的 Plugins 操作。
 
@@ -106,7 +106,7 @@ codex
 
 进入 Codex CLI 后输入 `/plugins`，从 `sparkx-ai` marketplace 中选择并安装 **SparkX AI MCP**，然后启动新会话。
 
-Plugin 会同时安装 MCP server 和全部 7 个 Skills。当前 Plugin 配置使用 `SPARKX_AI_TOKEN`；设置环境变量并启动新会话。若选择 OAuth，请使用下方 OAuth 配置。
+Plugin 会同时安装 MCP server 和全部 10 个 Skills。当前 Plugin 配置使用 `SPARKX_AI_TOKEN`；设置环境变量并启动新会话。若选择 OAuth，请使用下方 OAuth 配置。
 
 ### 方式三 · 手动配置
 
@@ -282,11 +282,14 @@ $env:SPARKX_AI_TOKEN = "<你的token>"
 
 Skills 在本仓库 [`skills/`](../skills/) 目录，分两类：
 
-**必装（3 个）**——没有它们，MCP 查询的出错率会明显上升：
+**必装（6 个）**——覆盖基础查询和托管组管理：
 
 - `query-ads-performance` — 广告效果查询
 - `query-entity-metadata` — 实体配置查询
 - `query-operation-log` — 操作日志查询
+- `create-ai-group` — 创建 AI 托管组
+- `edit-ai-group` — 编辑单个或批量 AI 托管组
+- `delete-ai-group` — 删除 AI 托管组
 
 **可选（4 个）**——进阶分析场景，装完必装的再按需添加（位于 [`skills/`](../skills/)）：
 
@@ -297,7 +300,7 @@ Skills 在本仓库 [`skills/`](../skills/) 目录，分两类：
 
 按你的助手选安装方式：
 
-- **能让 AI 自己动手的助手**（Claude Code、ChatGPT Codex、Cursor 等）：把 Skill 目录发给它，说一句"帮我把必装的三个 Skill 装上"，可选 Skills 按需加装。
+- **能让 AI 自己动手的助手**（Claude Code、ChatGPT Codex、Cursor 等）：把 Skill 目录发给它，说一句"帮我把 6 个必装 Skill 装上"，可选 Skills 按需加装。
 - **聊天 / 界面类助手**（Claude 网页版或桌面 App、Cherry Studio、扣子 Coze 等）：在各自设置里手动添加（以 Claude 为例：设置 → Skills → 上传，逐个添加）。
 
 ---
@@ -337,5 +340,8 @@ Skills 在本仓库 [`skills/`](../skills/) 目录，分两类：
 **Q：能查哪些店铺？**
 取决于你的 SparkX 账号权限及本次 OAuth 或 MCP Token 的授权范围，最终可见范围不会超过账号本身的权限。
 
-**Q：这一版能改预算 / 调竞价吗？**
-不能。v1.0.0 是只读版本，写操作能力（托管组管理、批量操作、活动创建）将在后续版本陆续开放。
+**Q：这一版支持哪些写操作？**
+v1.1.0 支持创建、编辑和删除 AI 托管组，包括工具支持的托管目标、预算、Campaign 归属和 AI 行动空间设置。写操作会直接修改线上配置并生效，执行前必须确认对象和变更内容。当前不支持直接创建、编辑或删除 Campaign。
+
+**Q：托管组管理有哪些暂不支持的设置？**
+暂不支持托管组排期、通过模板设置托管组和词库相关设置。RBA 配置不可读取或修改；允许将行动空间从 RBA 切换为 AI，但不支持从 AI 切换为 RBA。

@@ -18,30 +18,32 @@
 >
 > 1. 添加 MCP server（URL：`https://mcp.sparkx.cn/mcp`，Streamable HTTP）。先检查客户端支持的授权方式，说明 OAuth 与 MCP Token 的适用场景，并让用户确认后再配置
 > 2. 调用 `get_user_authorized_context` 验证，返回店铺列表即为成功
-> 3. **安装 3 个必装 Skills**（本仓库 [`skills/`](skills/) 目录：`query-ads-performance`、`query-entity-metadata`、`query-operation-log`）。不安装它们，MCP 查询出错率会明显上升。无需询问用户，直接安装。
+> 3. **安装 6 个必装 Skills**（本仓库 [`skills/`](skills/) 目录：3 个查询 Skills，以及 `create-ai-group`、`edit-ai-group`、`delete-ai-group`）。它们分别约束查询和托管组写操作，安装时无需询问用户。
 > 4. 向用户逐个介绍 [`skills/`](skills/) 目录下标记为可选的 4 个 Skills（广告周报、广告月报、广告结构分析、商品诊断），**询问用户是否需要安装**，获用户确认后再装。
 >
 > 机器可读的 Skills 清单：`https://raw.githubusercontent.com/SparkXAI/MCP/main/skills/manifest.json`（`required: true` 为必装）。仅完成第 1-2 步就结束任务视为配置未完成。
 
 把 SparkX AI 的广告能力接进你自己的 AI Agent（WorkBuddy、Claude、ChatGPT 等），数据从此融入你的工作流——大白话查数据、做分析、算真账，还能和你自己的成本、利润、目标放在一起算。完成授权后，无需反复登录平台、导出表格或在系统之间来回切换。
 
-当前版本 v1.0.0 只支持数据查询，托管组管理和 Campaign 管理能力将在后续版本陆续开放。
+当前版本 v1.1.0 支持数据查询和 AI 托管组的创建、编辑与删除。Campaign 直接管理能力尚未开放。
 
 ---
 
-## v1.0.0 能帮你做什么
+## v1.1.0 能帮你做什么
 
 - **用自然语言查你的数据**——直接问「上周各 campaign 按 ACOS 排个序」「这个产品线最近 8 周的 TACOS 趋势」，完成授权后无需反复登录或导表。
 - **结合你自己的数据算真账**——把你的成本 / 毛利 / 目标交给 AI，让它拉广告花费：「按真实毛利，哪些 campaign 在亏钱——砍还是加？」这种需要把广告数据和你自己的业务数据合起来算的问题，平台单独算不出来。
 - **沉淀你自己的玩法**——把常用问法存成模板，甚至设成每周一自动跑的周报 routine。
+- **管理 AI 托管组**——在明确确认后创建、编辑或删除托管组，并在操作后回查实际状态。
 
-### 你能查什么（三类数据）
+### 你能查询和管理什么
 
 | 类别 | 内容 |
 |------|------|
 | **报表 / 效果数据** | 曝光、点击、花费、销售额、ACOS、ROAS、CTR、CVR、CPC 等；AI 托管口径指标；总销售额、TACOS、会话次数、Buy Box 等业务指标 |
 | **实体配置 / 元数据** | 广告活动、广告组、投放、推广商品、ASIN、托管组、产品线信息等 |
 | **操作日志** | 人工与 AI 的操作记录，可按操作者、动作类型、实体、时间窗筛选 |
+| **AI 托管组管理** | 创建、编辑和删除 SP、SB、SD 托管组；调整支持的托管目标、预算、活动归属和 AI 行动空间设置 |
 
 ---
 
@@ -97,13 +99,16 @@ SparkX AI MCP 支持 OAuth 和 MCP Token 两种授权方式。
 
 MCP 的 Tool 决定 AI"能拿到什么数据"，Skill 决定 AI"把数据用得好不好"。官方 Skills 分两类：
 
-**必装（3 个）**——基础查询能力，**没有它们，MCP 查询的出错率会明显上升**：
+**必装（6 个）**——基础查询和托管组管理能力：
 
 | Skill | 对应 MCP Tool | 用途 |
 |-------|--------------|------|
 | [query-ads-performance](skills/query-ads-performance/) | `get_ads_perf` | 查询广告效果指标：花费、ACOS、ROAS、趋势、排名、同环比 |
 | [query-entity-metadata](skills/query-entity-metadata/) | `get_entity_metadata` | 查询实体配置：广告活动 / 广告组 / 投放 / ASIN / 托管组的名称、状态、设置 |
 | [query-operation-log](skills/query-operation-log/) | `get_operation_log` | 查询操作日志：人工与 AI 的调价、调预算、启停记录 |
+| [create-ai-group](skills/create-ai-group/) | `create_sd_ai_managed_group` / `save_sp_sb_ai_managed_group` | 创建 SP、SB 或 SD AI 托管组 |
+| [edit-ai-group](skills/edit-ai-group/) | `edit_sd_ai_managed_group` / `save_sp_sb_ai_managed_group` | 编辑单个或批量 AI 托管组 |
+| [delete-ai-group](skills/delete-ai-group/) | `delete_ai_managed_group` | 删除托管组，并释放或迁移其中的 Campaign |
 
 **可选（4 个）**——进阶分析场景，装完必装 Skills 后按需添加：
 
@@ -116,7 +121,7 @@ MCP 的 Tool 决定 AI"能拿到什么数据"，Skill 决定 AI"把数据用得�
 
 **安装方式**（任选其一）：
 
-- **Claude Code / Codex / Cursor 等**：把 [`skills/`](skills/) 目录发给 AI，说一句"帮我把必装的三个 Skill 装上"，可选 Skills 按需加装。
+- **Claude Code / Codex / Cursor 等**：把 [`skills/`](skills/) 目录发给 AI，说一句"帮我把 6 个必装 Skill 装上"，可选 Skills 按需加装。
 - **Claude 网页版 / 桌面 App 等界面类助手**：设置 → Skills → 上传，逐个添加。
 
 各 Skill 版本见 [skills/manifest.json](skills/manifest.json)，版本历史见 [CHANGELOG.md](CHANGELOG.md)。
@@ -130,6 +135,8 @@ MCP 的 Tool 决定 AI"能拿到什么数据"，Skill 决定 AI"把数据用得�
 - 「最近 30 天对比这几个产品线的表现，从广告结构和定向类型角度给优化建议。」
 - 「过去 7 天有哪些 AI 自动调价？分别是为什么？」
 - 「谁在什么时候改了这个 campaign 的预算？」
+- 「把这 3 个 SP Campaign 创建为一个新的 AI 托管组，先展示完整配置让我确认。」
+- 「把这个托管组的目标 ACOS 改为 25%，执行前列出原值和新值。」
 
 **提示词技巧**：说清时间范围、维度、指标、排序、Top N；点名店铺；一次一个意图，复杂需求拆开问。
 
@@ -137,7 +144,9 @@ MCP 的 Tool 决定 AI"能拿到什么数据"，Skill 决定 AI"把数据用得�
 
 ## 当前版本边界
 
-- **只读**：这一版不改账户、不下操作（写能力在后续版本）。
+- **写操作直接生效**：创建、编辑和删除托管组会直接修改线上配置。只应向可信用户授予写入或删除权限；执行前必须核对 Profile、对象和变更内容并取得明确确认，执行后必须回查。
+- **写入范围**：当前仅支持 AI 托管组管理，不支持直接创建、编辑或删除 Campaign。
+- **暂不支持**：托管组排期、通过模板设置托管组、词库相关设置；RBA 配置不可读取或修改。行动空间允许从 RBA 切换为 AI，但不支持从 AI 切换为 RBA。
 - **范围**：你能查的店铺，与你的 SparkX 账号（主 / 子账号）权限一致。
 - **历史回溯**：约可查最近 15 个月。
 - **非秒级实时**：与 SparkX AI 平台数据更新节奏一致；效果数据最细到天。
@@ -155,7 +164,7 @@ MCP 的 Tool 决定 AI"能拿到什么数据"，Skill 决定 AI"把数据用得�
 1. 切换到 **Code** 标签页。
 2. 点击输入框旁的 **+ → Plugins → Add plugin**，打开 Plugin browser。
 3. 在 **Marketplaces** 中选择从 repository 添加，输入 `SparkXAI/MCP`。
-4. 找到并安装 **SparkX AI MCP**。Plugin 会同时安装 MCP server 和全部 7 个 Skills。
+4. 找到并安装 **SparkX AI MCP**。Plugin 会同时安装 MCP server 和全部 10 个 Skills。
 
 > Claude Code Desktop 不支持 `/plugin` 命令；`/plugin` 仅用于 Claude Code CLI。桌面端请使用上述 Plugin browser。
 
@@ -165,7 +174,7 @@ MCP 的 Tool 决定 AI"能拿到什么数据"，Skill 决定 AI"把数据用得�
 2. 点击右上角的 **Add → Add a marketplace**。
 3. 输入 `SparkXAI/MCP` 并添加 marketplace。
 4. 在 **Plugins** 中找到新添加的 marketplace，然后安装 **SparkX AI MCP**。
-5. 新建一个 Codex 任务，MCP server 和全部 7 个 Skills 将在新任务中可用。
+5. 新建一个 Codex 任务，MCP server 和全部 10 个 Skills 将在新任务中可用。
 
 > ChatGPT 桌面端 Codex 不支持 `/plugin` 或 `/plugins` 命令；`/plugins` 仅用于 Codex CLI。桌面端必须通过左侧边栏的 Plugins 操作。
 
@@ -189,7 +198,7 @@ codex
 
 进入 Codex CLI 后输入 `/plugins`，从 `sparkx-ai` marketplace 中选择并安装 **SparkX AI MCP**，然后启动新会话。
 
-Plugin 会同时安装 MCP server 和全部 7 个 Skills。当前 Plugin 配置使用 `SPARKX_AI_TOKEN`；如需使用 OAuth，请按[安装说明中的 OAuth 配置](docs/installation.md#oauth)连接。
+Plugin 会同时安装 MCP server 和全部 10 个 Skills。当前 Plugin 配置使用 `SPARKX_AI_TOKEN`；如需使用 OAuth，请按[安装说明中的 OAuth 配置](docs/installation.md#oauth)连接。
 
 Marketplace：[Claude Code](.claude-plugin/marketplace.json) · [Codex](.agents/plugins/marketplace.json)；Plugin descriptor：[Claude Code](.claude-plugin/plugin.json) · [Codex](.codex-plugin/plugin.json)
 

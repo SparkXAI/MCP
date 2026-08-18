@@ -1,7 +1,7 @@
 {
   "$schema_note": "Machine-readable manifest of SparkX AI MCP official skills. Version fields must stay in sync with each skill's SKILL.md frontmatter.",
   "manifest_version": 1,
-  "updated_at": "2026-08-12",
+  "updated_at": "2026-08-18",
   "release": "v1.1.0",
   "skills": [
     {
@@ -30,6 +30,30 @@
       "scope": "amazon_sa:ads_logs:read",
       "path": "query-operation-log",
       "description": "Query operation logs: user and AI action history on ad entities (bid, budget, status changes)."
+    },
+    {
+      "name": "create-ai-group",
+      "version": "1.0.0",
+      "required": true,
+      "mcp_tools": ["create_sd_ai_managed_group", "save_sp_sb_ai_managed_group"],
+      "path": "create-ai-group",
+      "description": "Create SP, SB, or SD AI managed groups and assign campaigns after explicit confirmation."
+    },
+    {
+      "name": "edit-ai-group",
+      "version": "1.0.0",
+      "required": true,
+      "mcp_tools": ["edit_sd_ai_managed_group", "save_sp_sb_ai_managed_group"],
+      "path": "edit-ai-group",
+      "description": "Edit one or multiple AI managed groups with confirmation and read-back verification."
+    },
+    {
+      "name": "delete-ai-group",
+      "version": "1.0.0",
+      "required": true,
+      "mcp_tool": "delete_ai_managed_group",
+      "path": "delete-ai-group",
+      "description": "Delete an AI managed group and explicitly release or migrate its campaigns."
     },
     {
       "name": "weekly-ads-report",
