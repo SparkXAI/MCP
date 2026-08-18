@@ -2,6 +2,14 @@
 
 本文件记录 SparkX AI MCP Skills 与配套文档的版本变化。
 
+## [Unreleased]
+
+### 变更
+
+- MCP 连接新增 OAuth 授权，与现有 MCP Token 两种方式并行支持。
+- Plugin 内置配置继续使用 MCP Token；支持 OAuth 的客户端可通过 Custom Connector 或手动配置连接。
+- 更新 README、安装说明、连接验证和 401 排障指引，明确 OAuth 与 MCP Token 两条配置路径。
+
 ## [1.0.0] - 2026-07-28
 
 首个版本（对应 MCP Server v1.0.0 · 数据查询）。

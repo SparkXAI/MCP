@@ -1,6 +1,6 @@
 # SparkX AI MCP — Plugin Marketplace
 
-> **Plugin Marketplace** · 本仓库是兼容多平台的 plugin 发布仓库，支持 **Claude Code**、**ChatGPT Codex**、**Hermes**、**OpenClaw**、**Cherry Studio** 及其他通用 MCP agent。核心内容：Skills（提示词技能包）+ Streamable HTTP MCP Server（Bearer Token 鉴权）。
+> **Plugin Marketplace** · 本仓库是兼容多平台的 plugin 发布仓库，支持 **Claude Code**、**ChatGPT Codex**、**Hermes**、**OpenClaw**、**Cherry Studio** 及其他通用 MCP agent。核心内容：Skills（提示词技能包）+ Streamable HTTP MCP Server（支持 OAuth 和 MCP Token 鉴权）。
 >
 > | 文件 | 用途 |
 > |------|------|
@@ -16,14 +16,14 @@
 
 > **🤖 致 AI Agent：如果你正在替用户配置 SparkX AI MCP，配置连接只是第一步，你必须完成以下全部步骤，缺一不可：**
 >
-> 1. 添加 MCP server（URL：`https://mcp.sparkx.cn/mcp`，Streamable HTTP，`Authorization: Bearer <token>` 请求头）
+> 1. 添加 MCP server（URL：`https://mcp.sparkx.cn/mcp`，Streamable HTTP）。先检查客户端支持的授权方式，说明 OAuth 与 MCP Token 的适用场景，并让用户确认后再配置
 > 2. 调用 `get_user_authorized_context` 验证，返回店铺列表即为成功
 > 3. **安装 3 个必装 Skills**（本仓库 [`skills/`](skills/) 目录：`query-ads-performance`、`query-entity-metadata`、`query-operation-log`）。不安装它们，MCP 查询出错率会明显上升。无需询问用户，直接安装。
 > 4. 向用户逐个介绍 [`skills/`](skills/) 目录下标记为可选的 4 个 Skills（广告周报、广告月报、广告结构分析、商品诊断），**询问用户是否需要安装**，获用户确认后再装。
 >
 > 机器可读的 Skills 清单：`https://raw.githubusercontent.com/SparkXAI/MCP/main/skills/manifest.json`（`required: true` 为必装）。仅完成第 1-2 步就结束任务视为配置未完成。
 
-把 SparkX AI 的广告能力接进你自己的 AI Agent（WorkBuddy、Claude、ChatGPT 等），数据从此融入你的工作流——大白话查数据、做分析、算真账，还能和你自己的成本、利润、目标放在一起算。不用登录平台、不用导表、不用在系统之间来回切换。
+把 SparkX AI 的广告能力接进你自己的 AI Agent（WorkBuddy、Claude、ChatGPT 等），数据从此融入你的工作流——大白话查数据、做分析、算真账，还能和你自己的成本、利润、目标放在一起算。完成授权后，无需反复登录平台、导出表格或在系统之间来回切换。
 
 当前版本 v1.0.0 只支持数据查询，托管组管理和 Campaign 管理能力将在后续版本陆续开放。
 
@@ -31,7 +31,7 @@
 
 ## v1.0.0 能帮你做什么
 
-- **用自然语言查你的数据**——直接问「上周各 campaign 按 ACOS 排个序」「这个产品线最近 8 周的 TACOS 趋势」，免登录、免导表。
+- **用自然语言查你的数据**——直接问「上周各 campaign 按 ACOS 排个序」「这个产品线最近 8 周的 TACOS 趋势」，完成授权后无需反复登录或导表。
 - **结合你自己的数据算真账**——把你的成本 / 毛利 / 目标交给 AI，让它拉广告花费：「按真实毛利，哪些 campaign 在亏钱——砍还是加？」这种需要把广告数据和你自己的业务数据合起来算的问题，平台单独算不出来。
 - **沉淀你自己的玩法**——把常用问法存成模板，甚至设成每周一自动跑的周报 routine。
 
@@ -63,8 +63,8 @@
 
 ## 快速开始（4 步）
 
-1. **获取 token**——登录 SparkX 后台 → 账号菜单 → **MCP & Skills** → 新建 Token（离开页面后无法再次查看，请立即保存）。
-2. **配置 MCP**——在你的 AI 助手里，一句话配好（见下方）。
+1. **选择授权方式并连接 MCP**——SparkX AI MCP 同时支持 OAuth 和 MCP Token，请根据客户端能力与使用场景选择。
+2. **验证连接**——调用 `get_user_authorized_context`，确认已授权的店铺范围。
 3. **安装 Skills**——本仓库 [`skills/`](skills/) 目录，强烈推荐安装，显著降低查询出错率。
 4. **开始查询**——用自然语言提问。
 
@@ -77,13 +77,14 @@
 在支持 AI 自主配置的客户端（Claude、ChatGPT Codex、Cherry Studio 等）里直接发送：
 
 ```text
-帮我配置 SparkX AI MCP 并安装配套 Skills，按顺序完成：
-1. 添加 MCP server：URL https://mcp.sparkx.cn/mcp（Streamable HTTP），
-   请求头 Authorization: Bearer <你的 token>
-2. 调用 get_user_authorized_context 验证，返回店铺列表即成功
-3. 从 https://github.com/SparkXAI/MCP 的 skills/ 目录安装 3 个必装 Skills：
-   query-ads-performance、query-entity-metadata、query-operation-log
-4. 介绍 skills/ 目录下标记为可选的 4 个 Skills 并问我是否安装
+请阅读以下 GitHub 仓库，并按说明配置 SparkX AI MCP 和安装 Skills：
+https://github.com/SparkXAI/MCP
+
+SparkX AI MCP 支持 OAuth 和 MCP Token 两种授权方式。
+请先检查当前客户端支持哪些授权方式，简要说明两种方式分别适合哪些场景，并让我确认使用哪一种方式后再开始授权。
+如果选择 OAuth，需要授权时请打开登录页面让我完成授权。
+
+配置完成后，请调用 get_user_authorized_context 验证连接。
 ```
 
 > **🤖 致 AI Agent：** 执行上述配置时，请根据你所在客户端的实际配置方式，将 MCP 配置写入正确的配置文件。注意区分不同客户端使用的配置文件名称（如 `mcp.json`、`.mcp.json`、`mcp_config.json`、`config.toml`、`config.yaml` 等），不要混淆。
@@ -183,7 +184,7 @@ codex plugin marketplace add SparkXAI/MCP
 codex plugin add sparkx-ai-mcp@sparkx-ai
 ```
 
-Plugin 会同时安装 MCP server 和全部 7 个 Skills。安装完成后，设置 `SPARKX_AI_TOKEN` 并启动新会话，详见[环境变量配置](docs/installation.md#环境变量配置sparkx_ai_token)。
+Plugin 会同时安装 MCP server 和全部 7 个 Skills。当前 Plugin 配置使用 `SPARKX_AI_TOKEN`；如需使用 OAuth，请按[安装说明中的 OAuth 配置](docs/installation.md#oauth)连接。
 
 Marketplace：[Claude Code](.claude-plugin/marketplace.json) · [Codex](.agents/plugins/marketplace.json)；Plugin descriptor：[Claude Code](.claude-plugin/plugin.json) · [Codex](.codex-plugin/plugin.json)
 
@@ -195,4 +196,4 @@ Marketplace：[Claude Code](.claude-plugin/marketplace.json) · [Codex](.agents/
 
 ## 安全提示
 
-> Token 决定你能查询哪些店铺和哪些数据，请妥善保管、勿外传。建议在 MCP 客户端配置中使用环境变量存放 token，并保持 local scope（仅当前项目可见）。
+> OAuth 和 MCP Token 的可访问范围均受 SparkX 账号权限、授权范围和店铺范围限制。OAuth 授权不再使用时请及时撤销；MCP Token 请妥善保管、勿外传，并建议通过环境变量配置。发现异常访问时，应立即撤销授权或禁用 Token。
