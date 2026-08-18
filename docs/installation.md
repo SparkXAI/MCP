@@ -37,7 +37,7 @@ SparkX AI MCP 支持 OAuth 和 MCP Token 两种授权方式。两种方式使用
 
 ### 方式一 · 一句话配置（推荐）
 
-在能让 AI 自己动手配置的客户端（Claude、ChatGPT Codex、Cherry Studio、扣子 Coze、WorkBuddy 等）里，直接把下面这段发给它：
+在能让 AI 自己动手配置的客户端（WorkBuddy、Claude、ChatGPT Codex、Cherry Studio、扣子 Coze 等）里，直接把下面这段发给它：
 
 ```text
 请阅读以下 GitHub 仓库，并按说明配置 SparkX AI MCP 和安装 Skills：
@@ -54,9 +54,10 @@ SparkX AI MCP 支持 OAuth 和 MCP Token 两种授权方式。
 
 助手会根据你确认的授权方式配置 MCP、完成授权、验证连接并安装必装 Skills。返回已授权的店铺列表即表示连接成功。
 
+- **WorkBuddy**：在对话中直接发送上面的配置提示词。
 - **Claude**：打开 Claude → 切到 **Code 标签页** → 粘贴上面这段。
 - **ChatGPT Codex**：直接把这段发给 Codex（它会写进 `~/.codex/config.toml`）。
-- **Cherry Studio / 扣子 Coze / WorkBuddy**：在对话里发给对应智能体即可。
+- **Cherry Studio / 扣子 Coze**：在对话里发给对应智能体即可。
 
 若客户端不支持让 AI 代配，按下方「手动配置」在设置里添加。
 

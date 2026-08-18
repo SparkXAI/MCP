@@ -1,6 +1,6 @@
 # SparkX AI MCP — Plugin Marketplace
 
-> **Plugin Marketplace** · 本仓库是兼容多平台的 plugin 发布仓库，支持 **Claude Code**、**ChatGPT Codex**、**Hermes**、**OpenClaw**、**Cherry Studio** 及其他通用 MCP agent。核心内容：Skills（提示词技能包）+ Streamable HTTP MCP Server（支持 OAuth 和 MCP Token 鉴权）。
+> **Plugin Marketplace** · 本仓库是兼容多平台的 plugin 发布仓库，支持 **WorkBuddy**、**Claude Code**、**ChatGPT Codex**、**Hermes**、**OpenClaw**、**Cherry Studio** 及其他通用 MCP agent。核心内容：Skills（提示词技能包）+ Streamable HTTP MCP Server（支持 OAuth 和 MCP Token 鉴权）。
 >
 > | 文件 | 用途 |
 > |------|------|
@@ -51,9 +51,9 @@
 
 | AI 助手 | 类型 | 推荐 |
 |---------|------|------|
+| **WorkBuddy** | 国内 | ⭐ 国内优先推荐 |
 | **Claude Code** | 海外 | ⭐ 海外优先推荐 |
 | **ChatGPT** | 海外 | ⭐ 海外优先推荐 |
-| **WorkBuddy** | 国内 | ⭐ 国内优先推荐 |
 | Hermes | 国内 | |
 | Cherry Studio | 国内 | |
 | 扣子 Coze | 国内 | |
@@ -74,7 +74,7 @@
 
 ### 一句话配置（推荐）
 
-在支持 AI 自主配置的客户端（Claude、ChatGPT Codex、Cherry Studio 等）里直接发送：
+在支持 AI 自主配置的客户端（WorkBuddy、Claude、ChatGPT Codex、Cherry Studio 等）里直接发送：
 
 ```text
 请阅读以下 GitHub 仓库，并按说明配置 SparkX AI MCP 和安装 Skills：
