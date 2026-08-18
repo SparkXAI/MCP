@@ -254,6 +254,65 @@ Operation type filter (fine-grained). More precise than `actionType`. Always pas
 | `portfolio` | `Portfolio Out of Budget` |
 | `portfolio` | `Portfolio Added` |
 
+| `aiGroup` | `Turn on Managed group AI` |
+| `aiGroup` | `Turn off Managed group AI` |
+| `aiGroup` | `Set managed group name` |
+| `aiGroup` | `Change managed group name` |
+| `aiGroup` | `Set the objective of managed group AI` |
+| `aiGroup` | `Set the target value of managed group AI` |
+| `aiGroup` | `Set the AI personality` |
+| `aiGroup` | `Enable campaign name tag` |
+| `aiGroup` | `Added campaigns to the managed group` |
+| `aiGroup` | `Merged the current managed group into another managed group` |
+| `aiGroup` | `Enable budget dayparting (optimization method: AI)` |
+| `aiGroup` | `Enable budget dayparting (optimization method: rule)` |
+| `aiGroup` | `Disable budget dayparting` |
+| `aiGroup` | `Enable placement multiplier (optimization method: AI)` |
+| `aiGroup` | `Enable placement multiplier (optimization method: rule)` |
+| `aiGroup` | `Disable placement multiplier` |
+| `aiGroup` | `Enable bid dayparting (optimization method: AI)` |
+| `aiGroup` | `Enable bid dayparting (optimization method: rule)` |
+| `aiGroup` | `Disable bid dayparting` |
+| `aiGroup` | `Enable adjustment base bids base on performance (optimization method: AI)` |
+| `aiGroup` | `Enable adjustment base bids base on performance (optimization method: rule)` |
+| `aiGroup` | `Disable adjustment base bids base on performance` |
+| `aiGroup` | `Enable target harvesting (optimization method: AI)` |
+| `aiGroup` | `Enable target harvesting (optimization method: rule)` |
+| `aiGroup` | `Disable target harvesting` |
+| `aiGroup` | `Enable adding negative targets (optimization method: AI)` |
+| `aiGroup` | `Enable adding negative targets (optimization method: rule)` |
+| `aiGroup` | `Disable adding negative targets` |
+| `aiGroup` | `Enable pause targets (optimization method: AI)` |
+| `aiGroup` | `Enable pause targets (optimization method: rule)` |
+| `aiGroup` | `Disable pause targets` |
+| `aiGroup` | `Enabled budget reallocation` |
+| `aiGroup` | `Disabled budget reallocation` |
+| `aiGroup` | `Enabled bidding range` |
+| `aiGroup` | `Disabled bidding range` |
+| `aiGroup` | `Set the coefficient` |
+
+> **Note on Rule variants**: `(optimization method: rule)` entries are confirmed for
+> budget dayparting only (prod log 2026-08-18). Other action spaces follow the same
+> pattern but the rule variant has not been independently observed in logs yet —
+> include them in `operationType` filters when searching for Rule mode changes, but
+> verify the returned rows rather than assuming the exact string in advance.
+> `budgetRedistribute` and `bidAmazonBusiness` are `noRule` capabilities and have
+> **no** rule variant.
+
+> **aiGroup action-space changeField values**: the `changeField` is the action-space
+> switch name (e.g. `budgetDaypartStatus`, `bidAdPlaceStatus`). The `newValue`/
+> `previousValue` encode the state:
+>
+> | Value | Meaning | operationType suffix |
+> |---|---|---|
+> | `0` | Off / disabled | "Disable ..." |
+> | `1` | On, AI mode | "Enable ... (optimization method: AI)" |
+> | `3` | On, Rule mode | "Enable ... (optimization method: rule)" |
+>
+> Value `3` in the log is the **result** of `aiActionSettings.xxxStatus=1` +
+> `aiAutomation.<modeField>=1` (Rule mode). It is not a direct write value in the
+> two-layer model — the log merges both layers into a single value for display.
+
 Use `actionType` for broad filtering; use `operationType` when you need precise control over specific entity+action combinations.
 
 ### targetTypes

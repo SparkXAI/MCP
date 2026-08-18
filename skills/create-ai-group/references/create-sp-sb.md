@@ -5,8 +5,13 @@ arguments go inside a single `request` object. **Create mode is triggered by lea
 `aiGroupId` empty (omit it or set `0`)** - a positive `aiGroupId` means edit, which
 belongs to the `edit-ai-group` skill.
 
-Create mode is **AI mode only**: each automation rule just needs an on/off status.
-Rule mode (condition/action configs) is not supported through this tool.
+Create defaults to **AI mode**: `aiActionSettings.xxxStatus=1` (switch on) +
+the corresponding `aiAutomation` mode field = `0` (AI auto-decision). You can set
+Rule mode (mode field = `1`) at create time, but Rule condition/action configs
+(the 7x24 matrix, etc.) are not editable through this tool — only through the
+platform UI. So Rule mode at create uses platform-default templates. The exact
+mode field names per action space are in
+[`field-reference.md`](field-reference.md) under `aiAutomation`.
 
 ## Required for create
 
@@ -27,8 +32,8 @@ Rule mode (condition/action configs) is not supported through this tool.
 | `campaignNameSign` | int | Campaign-name label: `0`=off, `1`=on |
 | `aiPersonality` | int | `1`-`5`; **must be >=3 when `targetType=3` (volume/冲量)** (front-end rule - MCP won't enforce it) |
 | `preAddCampaignNums` | int | Pre-add campaign count |
-| `aiAutomation` | object | AI-mode rule switches (each `xxxStatus`: `0`=off, `1`=on). See field-reference |
-| `aiActionSettings` | object | Supported action-space config (bid / struct / budget / target optimization). See field-reference |
+| `aiAutomation` | object | Mode fields: `0`=AI mode, `1`=Rule mode. Exact field names in field-reference |
+| `aiActionSettings` | object | Action-space config (bid / struct / budget / target / brand optimization). See field-reference |
 
 Only send `aiAutomation` / `aiActionSettings` fields the user wants to change from
 platform defaults - both are large flattened objects and you rarely need most of it
@@ -37,8 +42,8 @@ for a basic create. Exact field names are in `field-reference.md`.
 ## Action-space coupling rules
 
 Enabling an action-space switch usually requires sending its companion fields (dynamic
-budget -> numType+num; ranges -> min/max with min <= max). Word-list settings are not
-supported and must not be sent. The supported coupling rules are in the shared
+budget -> numType+num; ranges -> min/max with min <= max; branded/competitor -> list +
+match type; blacklists -> list + list-type + match-type). The full set is in the shared
 [`coupling-rules.md`](coupling-rules.md) - read it before enabling any `aiActionSettings`
 switch.
 

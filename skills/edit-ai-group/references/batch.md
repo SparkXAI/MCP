@@ -99,9 +99,11 @@ The containers differ, but the mutual-exclusion rules do not: never send both
     sponsoredBrands`), but split by `campaignType` from metadata first.
 - Support still follows the ad type - see [`action-space-matrix.md`](action-space-matrix.md)
   (SB has no AI BidDaypart; `budgetRedistribute`/`bidAmazonBusiness` are `noRule`).
-- **Word-list fields are unsupported:** do not use `BRAND_TARGET` or send branded,
-  non-branded, competitor, negative-target blacklist, or target-harvest blacklist
-  fields, even if the routed schema still exposes them.
+- **Word-list fields:** `brandedStatus` / `competitorStatus` (+ lists) are not
+  version-gated - they write and take effect on v1 too (prod-confirmed 2026-08-13); send
+  normally, list IDs user-supplied. But the **blacklist word-lists**
+  `negativeTargetBlackListStatus` / `targetHarvestBlackListStatus` are **currently
+  unsupported for all ad types** (2026-08-14 spec: should error) - **don't send them**.
 
 ## Result is three-state - and success ids aren't always given
 

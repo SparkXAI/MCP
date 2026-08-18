@@ -7,9 +7,12 @@ it's actually supported for this group's `campaignType`. If it isn't, tell the u
 it's not supported for that ad type and don't send it (a silently-ignored switch looks
 like success but changes nothing).
 
-> Create mode is **AI mode only**. So at create time, only enable capabilities that
-> support **AI** for the group's ad type. Rule-only or unsupported ones don't belong
-> in a create call.
+> Create defaults to **AI mode** (`aiActionSettings.xxxStatus=1` +
+> the corresponding `aiAutomation` mode field = `0`). Rule mode (mode field = `1`)
+> can be set at create time, but Rule condition/action configs (the 7x24 matrix,
+> etc.) are not editable through the write tool — only through the platform UI.
+> The exact mode field name per action space is in
+> [`field-reference.md`](field-reference.md).
 
 ## Platform support != what the write tool exposes
 
@@ -63,10 +66,14 @@ the UI hides it and **MCP silently ignores the field** if you send it.
   `bidAdPlaceStatus`** (unsupported; it would be silently dropped).
 - **Not available for SB (SP-only)**: 广告位调价, B2B调价, 定向暂停, 暂停商品, 暂停广告活动.
   If the user asks for any of these on an SB group, say it's SP-only and don't send it.
-- **SB 分时调价 is Rule-only (no AI).** In AI-mode create/edit, don't enable it as an AI
-  switch on SB - tell the user it's Rule-only.
-- **`noRule` capabilities** (`budgetRedistribute`, `bidAmazonBusiness`) do **not** accept
-  Rule-mode parameters - only their on/off switch. Never attach Rule configs.
+- **SB 分时调价 is Rule-only (no AI mode).** For SB bid daypart, you must set
+  `aiAutomation.bidDaypartStatus = 1` (Rule mode) — AI mode is not supported for
+  this capability on SB. On SP, AI mode (`bidDaypartStatus = 0` in aiAutomation)
+  is supported.
+- **`noRule` capabilities** (`budgetRedistribute`, `bidAmazonBusiness`) do **not**
+  support Rule mode — they have **no** `aiAutomation` mode field. Control them
+  only via `aiActionSettings.xxxStatus` = `0`/`1`. Do not send any `aiAutomation`
+  field for these.
 
 ## Unsupported switches for the ad type - don't send them
 

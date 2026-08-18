@@ -66,18 +66,44 @@ Target: `targetHarvestActionStatus`, `targetHarvestBlackListStatus`,
 `negativeTargetBlackList` (IDs), `negativeTargetListType`, `negativeTargetMatchType`,
 `targetPausedAddStatus` (`0`=off, `1`=on, `2`=on with supplement).
 
-Word-list fields may appear in some schemas, including `brandedStatus`, `brandedList`,
-`competitorStatus`, `competitorList`, `negativeTargetBlackListStatus`, and
-`targetHarvestBlackListStatus`. They are **currently unsupported**. Do not send any
-word-list status, list ID, match-type, or list-type field.
+Brand: `brandedStatus`, `brandedMatchType`, `brandedList` (IDs); `competitorStatus`,
+`competitorMatchType`, `competitorList` (IDs).
 
-### `aiAutomation` (nested, AI-mode rule switches) - EXACT names
+`brandedStatus` / `competitorStatus` (+ their lists) are **not** version-gated - the
+backend doesn't filter by group version (v1/v2 is UI-only); prod-confirmed (2026-08-13)
+they're accepted and take effect on v1, so send them normally (list IDs user-supplied).
+But the **blacklist word-lists** `negativeTargetBlackListStatus` /
+`targetHarvestBlackListStatus` are **currently unsupported for every ad type** (2026-08-14
+spec: should be rejected) - **do not send them**; the backend may not block it yet but it
+has no effect.
 
-Each `0`=off/`1`=on: `bidDaypartStatus`, `bidPerformanceRuleStatus`,
-`budgetDaypartRuleStatus`, `budgetPerformanceRuleStatus`, `negativeTargetRuleStatus`,
-`pauseCampaignRuleStatus`, `placementAdjustmentRuleStatus`, `targetHarvestRuleStatus`,
-`targetPauseSupplementRuleStatus`. `budgetDaypartExcuteDays` = comma-separated days
-(`1`-`6`=Mon-Sat, `0`=Sun; default `"1,2,3,4,5,6,0"`).
+### `aiAutomation` (nested, mode switches) - EXACT names
+
+When an action space is on (`aiActionSettings.xxxStatus = 1`), the corresponding
+`aiAutomation` field controls the mode: `0` = AI mode (AI auto-decision),
+`1` = Rule mode (condition/action template governs). Field names vary — not all
+follow the `xxxRuleStatus` pattern.
+
+**Action-space switch -> aiAutomation mode field mapping:**
+
+| `aiActionSettings` switch | `aiAutomation` mode field | rule# |
+|---|---|---|
+| `bidDaypartStatus` | `bidDaypartStatus` | 2 |
+| `bidPerformanceStatus` | `bidPerformanceRuleStatus` | 181 |
+| `budgetDaypartActionStatus` | `budgetDaypartRuleStatus` | 13 |
+| `budgetDynamicActionStatus` | `budgetPerformanceRuleStatus` | 17 |
+| `negativeTargetActionStatus` | `negativeTargetRuleStatus` | 5 |
+| `structPauseCampaignStatus` | `pauseCampaignRuleStatus` | 20 |
+| `bidAdPlaceStatus` | `placementAdjustmentRuleStatus` | 19 |
+| `targetHarvestActionStatus` | `targetHarvestRuleStatus` | 4 |
+| `targetPausedAddStatus` | `targetPauseSupplementRuleStatus` | 182 |
+
+`budgetDaypartExcuteDays` = comma-separated days (`1`-`6`=Mon-Sat, `0`=Sun;
+default `"1,2,3,4,5,6,0"`). At create time, defaults are AI mode (`0`) unless
+the user specifies otherwise.
+
+`noRule` capabilities (`budgetRedistributeActionStatus`, `bidAmazonBusinessStatus`)
+have **no** `aiAutomation` mode field — only on/off via `aiActionSettings`.
 
 > Coupling rules (open a switch -> must also send its companion fields) are in
 > [`coupling-rules.md`](coupling-rules.md).
