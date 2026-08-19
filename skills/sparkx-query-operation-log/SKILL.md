@@ -1,6 +1,6 @@
 ---
 name: sparkx-query-operation-log
-version: 1.1.0
+version: 1.1.1
 description: >-
   Query SparkX AI platform operation logs: user and AI action history on ad entities.
   For tracking change history, auditing operations, troubleshooting issues.

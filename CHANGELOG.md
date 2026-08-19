@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### 变更
+
+- **sparkx-query-entity-metadata** `1.1.0` → `1.1.1`。
+- **sparkx-query-operation-log** `1.1.0` → `1.1.1`。
+- 增加 Skill 版本检查指引：AI Agent 在安装或更新时对比本地 `SKILL.md` 与远端 `manifest.json`，发现本地版本较低时提醒用户更新。
+
 ## [1.1.0] - 2026-08-18
 
 ### 变更

@@ -18,8 +18,9 @@
 >
 > 1. 添加 MCP server（URL：`https://mcp.sparkx.cn/mcp`，Streamable HTTP）。先检查客户端支持的授权方式，说明 OAuth 与 MCP Token 的适用场景，并让用户确认后再配置
 > 2. 调用 `get_user_authorized_context` 验证，返回店铺列表即为成功
-> 3. **安装 6 个必装 Skills**（本仓库 [`skills/`](skills/) 目录：3 个查询 Skills，以及 `sparkx-create-ai-group`、`sparkx-edit-ai-group`、`sparkx-delete-ai-group`）。它们分别约束查询和托管组写操作，安装时无需询问用户。
-> 4. 向用户逐个介绍 [`skills/`](skills/) 目录下标记为可选的 4 个 Skills（广告周报、广告月报、广告结构分析、商品诊断），**询问用户是否需要安装**，获用户确认后再装。
+> 3. **检查 Skill 版本**：读取 `skills/manifest.json`，将已安装 Skill 的本地 `SKILL.md` frontmatter 中的 `version` 与 manifest 中同名 Skill 的版本比较。若本地版本更低，列出需要更新的 Skill 并提醒用户更新；版本相同、未安装或无法读取本地版本时不要误报。
+> 4. **安装 6 个必装 Skills**（本仓库 [`skills/`](skills/) 目录：3 个查询 Skills，以及 `sparkx-create-ai-group`、`sparkx-edit-ai-group`、`sparkx-delete-ai-group`）。它们分别约束查询和托管组写操作，安装时无需询问用户。
+> 5. 向用户逐个介绍 [`skills/`](skills/) 目录下标记为可选的 4 个 Skills（广告周报、广告月报、广告结构分析、商品诊断），**询问用户是否需要安装**，获用户确认后再装。
 >
 > 机器可读的 Skills 清单：`https://raw.githubusercontent.com/SparkXAI/MCP/main/skills/manifest.json`（`required: true` 为必装）。仅完成第 1-2 步就结束任务视为配置未完成。
 

@@ -1,7 +1,7 @@
 {
   "$schema_note": "Machine-readable manifest of SparkX AI MCP official skills. Version fields must stay in sync with each skill's SKILL.md frontmatter.",
   "manifest_version": 1,
-  "updated_at": "2026-08-18",
+  "updated_at": "2026-08-19",
   "release": "v1.1.0",
   "skills": [
     {
@@ -15,7 +15,7 @@
     },
     {
       "name": "sparkx-query-entity-metadata",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "required": true,
       "mcp_tool": "get_entity_metadata",
       "scope": "amazon_sa:ads_configuration:read",
@@ -24,7 +24,7 @@
     },
     {
       "name": "sparkx-query-operation-log",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "required": true,
       "mcp_tool": "get_operation_log",
       "scope": "amazon_sa:ads_logs:read",

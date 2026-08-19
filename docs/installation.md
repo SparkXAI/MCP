@@ -282,6 +282,8 @@ $env:SPARKX_AI_TOKEN = "<你的token>"
 
 Skills 在本仓库 [`skills/`](../skills/) 目录，分两类：
 
+> **致 AI Agent：** 安装或更新前，读取 [`skills/manifest.json`](../skills/manifest.json)，并与本地同名 Skill 的 `SKILL.md` `version` 比较。本地版本更低时，列出需要更新的 Skill 并提醒用户；正常查询期间不要重复检查。
+
 **必装（6 个）**——覆盖基础查询和托管组管理：
 
 - `sparkx-query-ads-performance` — 广告效果查询
