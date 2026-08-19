@@ -16,7 +16,7 @@
 
 > **🤖 致 AI Agent：如果你正在替用户配置 SparkX AI MCP，配置连接只是第一步，你必须完成以下全部步骤，缺一不可：**
 >
-> 1. 添加 MCP server（URL：`https://mcp.sparkx.cn/mcp`，Streamable HTTP）。先检查客户端支持的授权方式，说明 OAuth 与 MCP Token 的适用场景，并让用户确认后再配置
+> 1. 添加 MCP server（URL：`https://mcp.sparkx.cn/mcp`，Streamable HTTP）。先检查客户端支持的授权方式，说明 OAuth 与 MCP Token 的适用场景，并让用户确认后再配置。若选择 OAuth，必须遵循 MCP Authorization 规范，在发送任何 OAuth 请求前校验 discovery 元数据、请求端点和全部必填字段，不得省略或猜测协议参数。
 > 2. 调用 `get_user_authorized_context` 验证，返回店铺列表即为成功
 > 3. **检查 Skill 版本**：读取 `skills/manifest.json`，将已安装 Skill 的本地 `SKILL.md` frontmatter 中的 `version` 与 manifest 中同名 Skill 的版本比较。若本地版本更低，列出需要更新的 Skill 并提醒用户更新；版本相同、未安装或无法读取本地版本时不要误报。
 > 4. **安装 6 个必装 Skills**（本仓库 [`skills/`](skills/) 目录：3 个查询 Skills，以及 `sparkx-create-ai-group`、`sparkx-edit-ai-group`、`sparkx-delete-ai-group`）。它们分别约束查询和托管组写操作，安装时无需询问用户。
@@ -86,6 +86,7 @@ https://github.com/SparkXAI/MCP
 SparkX AI MCP 支持 OAuth 和 MCP Token 两种授权方式。
 请先检查当前客户端支持哪些授权方式，简要说明两种方式分别适合哪些场景，并让我确认使用哪一种方式后再开始授权。
 如果选择 OAuth，需要授权时请打开登录页面让我完成授权。
+使用 OAuth 时，请遵循 MCP Authorization 规范；发送任何 OAuth 请求前，先校验 discovery 得到的端点和全部必填字段，不要省略或猜测协议参数。
 
 配置完成后，请调用 get_user_authorized_context 验证连接。
 ```

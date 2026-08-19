@@ -9,7 +9,7 @@ description: >-
   save_sp_sb_ai_managed_group (edit mode). Not for creating a group (use sparkx-create-ai-group)
   or deleting one (use sparkx-delete-ai-group).
 metadata:
-  version: 1.0.0
+  version: 1.0.1
 ---
 
 # Edit AI Managed Group
@@ -43,6 +43,63 @@ biggest trap here.
   and let them decide (e.g. pause AI themselves, or accept it).
 - Always **verify after** (below) - don't trust the `success` envelope.
 
+## Disambiguate before writing (when in doubt, ASK - don't guess)
+
+Everyday words - in English OR Chinese - map to DIFFERENT things in a managed group, and
+the **exact field depends on the ad type (SD vs SP/SB) and the write path (flat/batch vs
+action-space)**. So this section lists **business meanings only** - do NOT hard-code a
+field name from it. Resolve the meaning first, then determine ad type + tool path, then
+look up the exact field/param in [`references/field-reference.md`](references/field-reference.md)
+and [`references/action-space-matrix.md`](references/action-space-matrix.md).
+
+**If a request could map to more than one meaning, STOP and ask - don't pick one.**
+Guessing wrong changes live spend.
+
+**"budget" / "预算"** (e.g. "把预算调到 100" / "set the budget to 100") - candidate meanings:
+- 托管组总预算 (group total budget)
+- 托管组日预算 (group daily budget)
+- 组内所有 campaign 日预算之和 (sum of member campaigns' daily budgets)
+- 按表现调预算的固定值/百分比 (performance/dynamic budget *adjustment* - an automation, NOT
+  the budget value itself)
+- 预算重新分配 (budget reallocation across campaigns)
+- 单个 campaign 的预算 (a single campaign's budget - campaign-level, not a managed-group op)
+
+> `totalBudget` / `totalDailyBudget` are **read-side fields, not write params** - never
+> map a budget change onto them. **The current docs don't define how they're calculated -
+> don't infer a formula from the field name.** If the user wants that number changed,
+> confirm the actual business meaning first (group budget? member campaigns' budgets?
+> dynamic-budget strategy?). Whether these fields change after you edit the group budget
+> must be verified by reading back **after** the write - don't pre-infer.
+> Also, `budgetType`/`budgetRatio` live on the edit/batch path, so the exact field is
+> decided *after* ad type + path, not here.
+
+**"bid / adjust bid" / "调价 / 出价 / 竞价"** - candidate meanings (field differs by ad
+type/path, look it up after): 按表现调竞价 · 广告位调价 (SP only) · 竞价范围 (min/max) ·
+分时调价 (on SB this is Rule/RBA-only, and **MCP cannot read or edit RBA config** - if
+that's the intent on an SB group, tell the user it's not available through MCP and do
+**not** build write params). Ask which one.
+
+**"off / pause / stop" / "关掉 / 关闭 / 暂停 / 停"** - three very different things:
+- **关闭托管组 AI** (stop the group's AI optimization) - a status change. **Never do this
+  on your own; confirm first.**
+- **允许 AI 暂停广告活动 / 暂停商品** (`structPauseCampaign*` / `structPauseProduct*`) - this
+  is an **action-space switch that *enables the AI* to pause**; turning it on does **not**
+  immediately pause anything. SP only.
+- **立即暂停某个广告活动** (pause a specific campaign right now) - campaign-level, **not a
+  managed-group operation** and not settable through these tools.
+> "暂停广告活动" is ambiguous between "let AI pause campaigns" (action space) and "pause
+> this campaign now" (campaign-level, not here). **Never map it straight to a field and
+> execute - ask which is meant.**
+
+**"target / goal" / "目标"**: 推广目标 `targetType` (1 growth / 2 stability / 3 volume /
+4 legacy) vs 目标 ACOS/ROAS. Also "ACOS 调到 25" (a value) vs "ACOS 降 20%" (a ratio) are
+different inputs - confirm which.
+
+**Clarification is NOT authorization.** Even after the user answers the ambiguity, only
+produce a **change preview** (business meaning + resolved field + old -> new). Do **not**
+call any write tool until the user explicitly confirms the object, the meaning, and the
+new value.
+
 ## Workflow
 
 1. **Resolve the group(s) and read current config.** Look them up with the full
@@ -52,10 +109,14 @@ biggest trap here.
    `campaignType` (routing), `aiStatus`, and the current values of whatever you're
    about to change - SP/SB edit **merges** onto current config, and you want a before
    value to verify against.
-2. **Build a partial update - only the fields you're changing.** Both tools take
-   partial input (SP/SB fills the rest from current config; SD applies the non-null
-   fields to the `ids`). Don't resend unchanged fields.
-3. **Self-validate the front-end-only rules MCP bypasses** (see references):
+2. **Disambiguate into a single, concrete mapping** (see "Disambiguate before writing"
+   above). Determine the object level, the business meaning, the value type, and the unit.
+   **If more than one mapping is plausible, STOP and ask the user - do not build any params
+   yet.**
+3. **Build a partial update - only the fields you're changing** (only once the mapping is
+   unique). Both tools take partial input (SP/SB fills the rest from current config; SD
+   applies the non-null fields to the `ids`). Don't resend unchanged fields.
+4. **Self-validate the front-end-only rules MCP bypasses** (see references):
    - **ACOS / ROAS / Budget type are mutually exclusive** - the `*Type` decides which
      value field to send; sending the wrong companion (or both) fails. See
      [`references/edit-sd.md`](references/edit-sd.md).
@@ -81,11 +142,13 @@ biggest trap here.
    - **Word-list settings are not supported.** Do not send branded, non-branded,
      competitor, harvest-blacklist, or negative-target-blacklist fields, even if the
      routed schema exposes them. Tell the user to configure word lists in the platform.
-4. **Confirm before applying - especially for bulk and for running groups.** Echo the
-   exact changes (field: old -> new) per group, and how many groups are affected. For a
-   running group, note that some changes may not apply while AI is on. Get an explicit
-   go-ahead.
-5. **Verify - read back and compare.** Re-read the group(s) and confirm each changed
+5. **Confirm before applying - especially for bulk and for running groups.** Show a change
+   preview per group: **business meaning + resolved field + old -> new**, and how many
+   groups are affected. For a running group, note that some changes may not apply while AI
+   is on. Get an explicit go-ahead. **Clarification is not authorization** - a prior answer
+   to an ambiguity question is not itself permission to write; you still need an explicit
+   confirm of the actual change here before calling any write tool.
+6. **Verify - read back and compare.** Re-read the group(s) and confirm each changed
    field actually took the new value. For bulk, check **every** group, not just one -
    partial success is possible. Report any field that didn't move (often because AI was
    running) instead of implying it did. For `campaignNameSign`, also re-read the
@@ -93,7 +156,7 @@ biggest trap here.
    `campaignNameRecoveryType`; the group setting alone is not enough - also cross-check
    the `campaignNameSign` entry in `get_operation_log` (prod shows it logged with
    `changedBy=manual`).
-6. **Verify the audit trail when available.** If the token also has operation-log read
+7. **Verify the audit trail when available.** If the token also has operation-log read
    access, query `get_operation_log` for the affected group(s) and time window and
    confirm the action, object, time, and identifiable operator. `changedBy` is derived
    server-side from the authenticated token - never send or fabricate it. If log access
@@ -179,7 +242,13 @@ envelope does **not** prove the change applied (verify), and for bulk it can be
 `partial_failure` with `isError:false` (see [`references/batch.md`](references/batch.md)).
 Failures are `{ "isError": true, "data": { "error", "recoveryHint" } }` - relay
 `recoveryHint` when present, but it isn't always populated, so validate up front.
-`aiStatus`: `1`=on, `2`=off, `0`=never enabled.
+**Don't confuse the read enum with the write enum, and don't assume one global write
+enum.** The **read-back / query** value is `0`=never enabled, `1`=running, `2`=off. The
+**write** enum depends on the tool and call path - SP/SB single-group edit (`aiStatus`),
+SP/SB batch (`batchParams.status`, which uses `2`=paused), and SD batch (`STATUS`
+operation, seen to use `1`/`2`) each take their own values per the routed schema and
+[`references/batch.md`](references/batch.md). **Never reuse the query-returned `aiStatus`
+value as a write value** - look up the correct write value for the exact path you're on.
 
 ## Reference files
 - [`references/edit-sd.md`](references/edit-sd.md) - `edit_sd_ai_managed_group`: fields, ACOS/ROAS/Budget `*Type` mutual exclusion, batch `ids`, name recovery

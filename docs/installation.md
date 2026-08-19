@@ -46,6 +46,7 @@ https://github.com/SparkXAI/MCP
 SparkX AI MCP 支持 OAuth 和 MCP Token 两种授权方式。
 请先检查当前客户端支持哪些授权方式，简要说明两种方式分别适合哪些场景，并让我确认使用哪一种方式后再开始授权。
 如果选择 OAuth，需要授权时请打开登录页面让我完成授权。
+使用 OAuth 时，请遵循 MCP Authorization 规范；发送任何 OAuth 请求前，先校验 discovery 得到的端点和全部必填字段，不要省略或猜测协议参数。
 
 配置完成后，请调用 get_user_authorized_context 验证连接。
 ```
@@ -116,6 +117,8 @@ Plugin 会同时安装 MCP server 和全部 10 个 Skills。当前 Plugin 配置
 
 #### OAuth
 
+> **🤖 AI Agent / 自研客户端 OAuth 请求前检查：**请遵循 [MCP Authorization 规范](https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization)，先完成 authorization server discovery，再构造请求。发送 authorization request 或 token request 前，必须校验 discovery 得到的端点和当前流程要求的全部字段。尤其要在两类请求中都传递 `resource=https://mcp.sparkx.cn/mcp`，使用 Authorization Code + PKCE（`S256`）并保证 `code_verifier` 匹配，使用与注册信息完全一致的 `redirect_uri`，同时生成并校验 `state`。如果必需的元数据或字段缺失、冲突，应停止并报告问题，不得猜测参数或发送不完整请求。标准 MCP 客户端通常会自动处理这些要求，不要让用户把 OAuth 参数拼接到 Server URL。
+
 ##### Claude Desktop 与 Claude 网页版：Custom Connector（无需配置文件）
 
 Claude Desktop 和 Claude 网页版可以通过 Custom Connector 直接连接远程 MCP Server，无需编辑 `mcp.json`、安装 Node.js 或运行 `npx`。
@@ -157,7 +160,7 @@ https://mcp.sparkx.cn/mcp
 
 选择 **OAuth**、**登录**或**授权**，并按客户端提示完成浏览器授权。
 
-> **OAuth 兼容性：**客户端必须按照 MCP OAuth 规范，在 authorization request 和 token request 中传递 `resource`，其值为完整的 MCP Server URL：`https://mcp.sparkx.cn/mcp`。符合 MCP OAuth 规范的客户端会自动处理，用户无需手动配置，也不要将 `resource` 拼接到 Server URL。自研客户端或手动实现 DCR + PKCE 时需要显式支持。
+> **OAuth 兼容性：**客户端必须在 authorization request 和 token request 中传递 `resource`，其值为完整的 MCP Server URL：`https://mcp.sparkx.cn/mcp`。符合 MCP OAuth 规范的客户端会自动处理，用户无需手动配置，也不要将 `resource` 拼接到 Server URL。自研客户端或手动实现 DCR + PKCE 时需要显式支持，并遵守上方请求前检查要求。
 
 #### MCP Token
 

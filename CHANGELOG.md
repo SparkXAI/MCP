@@ -8,7 +8,10 @@
 
 - **sparkx-query-entity-metadata** `1.1.0` → `1.1.1`。
 - **sparkx-query-operation-log** `1.1.0` → `1.1.1`。
+- **sparkx-create-ai-group** `1.0.0` → `1.0.1`：增加业务术语消歧、写入前强制澄清检查，并修正创建时预算与目标字段的映射。
+- **sparkx-edit-ai-group** `1.0.0` → `1.0.1`：增加业务术语消歧，区分需求澄清与写入授权，并按调用路径处理状态枚举。
 - 增加 Skill 版本检查指引：AI Agent 在安装或更新时对比本地 `SKILL.md` 与远端 `manifest.json`，发现本地版本较低时提醒用户更新。
+- 增加 OAuth 请求前校验要求：AI Agent 必须按 MCP 授权流程完成 discovery，并在发送请求前校验协议要求的全部必填字段。
 
 ## [1.1.0] - 2026-08-18
 

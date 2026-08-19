@@ -33,7 +33,7 @@
     },
     {
       "name": "sparkx-create-ai-group",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "required": true,
       "mcp_tools": ["create_sd_ai_managed_group", "save_sp_sb_ai_managed_group"],
       "path": "sparkx-create-ai-group",
@@ -41,7 +41,7 @@
     },
     {
       "name": "sparkx-edit-ai-group",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "required": true,
       "mcp_tools": ["edit_sd_ai_managed_group", "save_sp_sb_ai_managed_group"],
       "path": "sparkx-edit-ai-group",

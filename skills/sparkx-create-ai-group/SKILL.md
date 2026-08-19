@@ -10,7 +10,7 @@ description: >-
   for enabling or editing an existing group (use sparkx-edit-ai-group) or deleting one (use
   sparkx-delete-ai-group).
 metadata:
-  version: 1.0.0
+  version: 1.0.1
 ---
 
 # Create AI Managed Group
@@ -48,6 +48,33 @@ How to determine the ad type, in order of preference:
 > `get_entity_metadata(profileIds=[<id>], entity='campaign', userContext='<why>')`.
 > The shorthand `get_entity_metadata(entity='campaign')` fails; always pass all three.
 
+## Disambiguate before writing (when in doubt, ASK - don't guess)
+
+Everyday words - in English OR Chinese - map to different fields. Before setting a value,
+be sure which field the user means; if it could be more than one, list the options and
+ask - don't guess.
+
+This section lists **business meanings only** - the exact field depends on ad type, so
+confirm the meaning first, then use the ad-type reference to pick the field.
+
+- **"budget" / "预算"** - candidate meanings: **group budget** vs **performance/dynamic
+  budget adjustment** (按表现调预算 / 动态预算 - an automation, not the budget value) vs
+  **budget reallocation** (预算重新分配) vs **a single campaign's budget** (campaign-level,
+  not settable via MCP). Which field, at create time:
+  - **SD** uses `budget` + `budgetChange` (a boolean toggle) - **there is no `budgetType`
+    at create** (`budgetType`/`budgetRatio` are edit/batch only).
+  - **SP/SB create has no group-budget input at all** - only budget-related action-space
+    switches. If the user wants an SP/SB group's spend budget set at creation, tell them
+    that's not a create-time field here.
+  Never map "set budget to X" onto the dynamic-budget adjustment value; if the meaning
+  isn't clear, ask.
+- **"target / goal" / "目标"**: 推广目标 `targetType` (1 growth / 2 stability / 3 volume /
+  4 legacy) vs 目标 ACOS (`acos`). **Create has no `roas` field** - if the user says
+  "目标 ROAS", do NOT build `roas`; tell them create can't set a target ROAS directly, and
+  ask whether they want to set the promotion target or convert it to a target ACOS.
+- **AI on/off at creation**: see "AI on vs off at creation" below - only start AI if the
+  user explicitly asked to create-and-start.
+
 ## Workflow (same for every ad type)
 
 1. **Resolve inputs to IDs and codes.**
@@ -70,7 +97,11 @@ How to determine the ad type, in order of preference:
      "保持订单稳定", "激进人格") to the right field + code via
      [`references/enum-i18n.md`](references/enum-i18n.md) before building the call,
      and translate back when you confirm/report.
-2. **Pre-flight checks:**
+2. **Map the request to a single business meaning** (see "Disambiguate before writing").
+   Especially for budget/target wording, decide exactly what the user wants set and which
+   field it is (after ad type is known). **If more than one meaning is plausible, STOP and
+   ask - don't build a create on a guessed interpretation.**
+3. **Pre-flight checks:**
    - **Name uniqueness.** The `aiGroupName` filter is a `like` (substring) match, not
      exact - query `get_entity_metadata(profileIds=[...], entity='aiGroup',
      filters={"aiGroupName": {"like": "%<name>%"}}, userContext='...')`, then compare names
@@ -85,22 +116,24 @@ How to determine the ad type, in order of preference:
      expose budget-management membership, so you cannot verify this up front - only
      the backend create can reject it. Don't claim conflicts are fully cleared; say
      the budget-management check happens server-side.
-3. **Confirm before creating - show everything that will take effect.** Echo the
+4. **Confirm before creating - show everything that will take effect.** Echo the
    **complete** config, not just the basics: ad type, group name, the campaigns (by
    name), `targetType`/`optimizeType`, target ACOS, budget settings, `aiPersonality`,
    `campaignNameSign`, and **every supported action-space switch you're enabling**
    (bid / budget / target / struct optimization). For anything you're not
    setting, say it will use the platform default - but **don't invent specific default
    values** (the tool schema doesn't define them); only state a concrete default if
-   you've read it back or it's documented. Get an explicit go-ahead. This matters most
-   when AI will start on (`aiStatus=1`) - those switches immediately affect live
-   delivery and spend.
+   you've read it back or it's documented. Get an explicit go-ahead - and note that **the
+   user answering an earlier clarification question is not itself authorization to create**;
+   you still need an explicit yes on this full preview before calling the create tool. This
+   matters most when AI will start on (`aiStatus=1`) - those switches immediately affect
+   live delivery and spend.
    - **Turn AI on only if the user explicitly asked to start it.** If they said "create
      and start" / "启动", set AI on. If they only asked to set up / create the group or
      place campaigns into it (or didn't say), default AI **off** (`aiStatus` / `status`
      = 0) and state that in your confirmation. Don't start automation on settings the
      user didn't confirm.
-4. **Build and call the routed tool** using the exact **write** field names + enum
+5. **Build and call the routed tool** using the exact **write** field names + enum
    values (ad-type reference + `field-reference.md`; write names != read names).
    > **Create is non-idempotent - never blind-retry.** On any failure, timeout, or
    > missing response, the group **may already have been created**. Before retrying,
@@ -126,13 +159,16 @@ How to determine the ad type, in order of preference:
      user gets a clear message instead of a downstream error (prod-confirmed 2026-08-13):
      `acos` must be > 0 and in range (`0`, negatives, and over-limit are all rejected);
      `aiPersonality` outside `1`-`5` is rejected; `campaignIds` is capped at **1000** per
-     group; and a switch sent without its companion field (`acosType` without `acos`,
-     `budgetType` without `budget`, dynamic budget without `numType`+`num`) is rejected.
+     group; and a coupled field sent without its companion is rejected. At **create** the
+     real budget couplings are: **SD budget** = `budgetChange` + `budget`; **SD dynamic
+     budget** = `budgetDynamicStatus` + `numType` + `num`; **SP/SB dynamic budget** = the
+     action-space switch + `budgetNumType` + `budgetNum`. (`acosType`/`budgetType`/
+     `budgetRatio` are **edit/batch** fields - do **not** put them in a create call.)
      Catch these up front rather than leaning on the backend error.
    - **Word-list settings are not supported.** Do not send branded, non-branded,
      competitor, harvest-blacklist, or negative-target-blacklist fields, even if the
      routed schema exposes them. Tell the user to configure word lists in the platform.
-5. **Verify it landed - group AND campaigns.** Don't trust the envelope alone:
+6. **Verify it landed - group AND campaigns.** Don't trust the envelope alone:
    - Re-read the group (`entity='aiGroup'`) -> confirm it exists with the intended
      top-level settings.
    - Re-read `entity='campaign'` and check each intended campaign's `aiGroupId` now
@@ -175,7 +211,7 @@ the target right away.
 ## Enum discipline
 
 `optimizeType` / `targetType` / `status` / `aiStatus` / `targetHarvestStatus` /
-`budgetType` / `aiPersonality` and the `aiActionSettings` switches are closed enums.
+`numType` / `aiPersonality` and the `aiActionSettings` switches are closed enums.
 Use only the values listed in
 [`references/field-reference.md`](references/field-reference.md) - do not invent or
 infer values. Passing an unlisted value makes the call fail, and the error comes back
