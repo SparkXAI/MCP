@@ -1,16 +1,6 @@
 # SparkX AI MCP — Plugin Marketplace
 
 > **Plugin Marketplace** · 本仓库是兼容多平台的 plugin 发布仓库，支持 **WorkBuddy**、**Claude Code**、**ChatGPT Codex**、**Hermes**、**OpenClaw**、**Cherry Studio** 及其他通用 MCP agent。核心内容：Skills（提示词技能包）+ Streamable HTTP MCP Server（支持 OAuth 和 MCP Token 鉴权）。
->
-> | 文件 | 用途 |
-> |------|------|
-> | [`.claude-plugin/marketplace.json`](.claude-plugin/marketplace.json) | Claude Code marketplace catalog |
-> | [`.claude-plugin/plugin.json`](.claude-plugin/plugin.json) | Claude Code plugin descriptor |
-> | [`.mcp.json`](.mcp.json) | Claude Code MCP server 配置（`${SPARKX_AI_TOKEN}` 环境变量） |
-> | [`.agents/plugins/marketplace.json`](.agents/plugins/marketplace.json) | Codex marketplace catalog |
-> | [`.codex-plugin/plugin.json`](.codex-plugin/plugin.json) | Codex plugin descriptor |
-> | [`docs/installation.md`](docs/installation.md) | 详细安装说明（手动配置、plugin 安装、故障排查） |
-> | [`skills/manifest.json`](skills/manifest.json) | 机器可读的 Skills 清单 |
 
 ---
 
@@ -202,8 +192,6 @@ codex
 
 Plugin 会同时安装 MCP server 和全部 10 个 Skills。当前 Plugin 配置使用 `SPARKX_AI_TOKEN`；如需使用 OAuth，请按[安装说明中的 OAuth 配置](docs/installation.md#oauth)连接。
 
-Marketplace：[Claude Code](.claude-plugin/marketplace.json) · [Codex](.agents/plugins/marketplace.json)；Plugin descriptor：[Claude Code](.claude-plugin/plugin.json) · [Codex](.codex-plugin/plugin.json)
-
 ### 通用 MCP 客户端
 
 参考[安装说明 · 方式三 · 手动配置](docs/installation.md#方式三--手动配置)，获取 Hermes、OpenClaw、Cherry Studio、Cursor、Cline 等客户端的配置示例。
@@ -213,3 +201,17 @@ Marketplace：[Claude Code](.claude-plugin/marketplace.json) · [Codex](.agents/
 ## 安全提示
 
 > OAuth 和 MCP Token 的可访问范围均受 SparkX 账号权限、授权范围和店铺范围限制。OAuth 授权不再使用时请及时撤销；MCP Token 请妥善保管、勿外传，并建议通过环境变量配置。发现异常访问时，应立即撤销授权或禁用 Token。
+
+---
+
+## 相关文件
+
+| 文件 | 用途 |
+|------|------|
+| [`.claude-plugin/marketplace.json`](.claude-plugin/marketplace.json) | Claude Code marketplace catalog |
+| [`.claude-plugin/plugin.json`](.claude-plugin/plugin.json) | Claude Code plugin descriptor |
+| [`.agents/plugins/marketplace.json`](.agents/plugins/marketplace.json) | Codex marketplace catalog |
+| [`.codex-plugin/plugin.json`](.codex-plugin/plugin.json) | Codex plugin descriptor |
+| [`.mcp.json`](.mcp.json) | Claude Code MCP server 配置（`${SPARKX_AI_TOKEN}` 环境变量） |
+| [`docs/installation.md`](docs/installation.md) | 详细安装说明（手动配置、plugin 安装、故障排查） |
+| [`skills/manifest.json`](skills/manifest.json) | 机器可读的 Skills 清单 |
