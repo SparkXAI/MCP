@@ -1,18 +1,4 @@
-# SparkX AI MCP — Plugin Marketplace
-
-> **Plugin Marketplace** · 本仓库是兼容多平台的 plugin 发布仓库，支持 **WorkBuddy**、**Claude Code**、**ChatGPT Codex**、**Hermes**、**OpenClaw**、**Cherry Studio** 及其他通用 MCP agent。核心内容：Skills（提示词技能包）+ Streamable HTTP MCP Server（支持 OAuth 和 MCP Token 鉴权）。
-
----
-
-> **🤖 致 AI Agent：如果你正在替用户配置 SparkX AI MCP，配置连接只是第一步，你必须完成以下全部步骤，缺一不可：**
->
-> 1. 添加 MCP server（URL：`https://mcp.sparkx.cn/mcp`，Streamable HTTP）。先检查客户端支持的授权方式，说明 OAuth 与 MCP Token 的适用场景，并让用户确认后再配置。若选择 OAuth，必须遵循 MCP Authorization 规范，在发送任何 OAuth 请求前校验 discovery 元数据、请求端点和全部必填字段，不得省略或猜测协议参数。
-> 2. 调用 `get_user_authorized_context` 验证，返回店铺列表即为成功
-> 3. **检查 Skill 版本**：读取 `skills/manifest.json`，将已安装 Skill 的本地 `SKILL.md` frontmatter 中的 `version` 与 manifest 中同名 Skill 的版本比较。若本地版本更低，列出需要更新的 Skill 并提醒用户更新；版本相同、未安装或无法读取本地版本时不要误报。
-> 4. **安装 6 个必装 Skills**（本仓库 [`skills/`](skills/) 目录：3 个查询 Skills，以及 `sparkx-create-ai-group`、`sparkx-edit-ai-group`、`sparkx-delete-ai-group`）。它们分别约束查询和托管组写操作，安装时无需询问用户。
-> 5. 向用户逐个介绍 [`skills/`](skills/) 目录下标记为可选的 4 个 Skills（广告周报、广告月报、广告结构分析、商品诊断），**询问用户是否需要安装**，获用户确认后再装。
->
-> 机器可读的 Skills 清单：`https://raw.githubusercontent.com/SparkXAI/MCP/main/skills/manifest.json`（`required: true` 为必装）。仅完成第 1-2 步就结束任务视为配置未完成。
+# SparkX AI MCP
 
 把 SparkX AI 的广告能力接进你自己的 AI Agent（WorkBuddy、Claude、ChatGPT 等），数据从此融入你的工作流——大白话查数据、做分析、算真账，还能和你自己的成本、利润、目标放在一起算。完成授权后，无需反复登录平台、导出表格或在系统之间来回切换。
 
@@ -81,7 +67,22 @@ SparkX AI MCP 支持 OAuth 和 MCP Token 两种授权方式。
 配置完成后，请调用 get_user_authorized_context 验证连接。
 ```
 
-> **🤖 致 AI Agent：** 执行上述配置时，请根据你所在客户端的实际配置方式，将 MCP 配置写入正确的配置文件。注意区分不同客户端使用的配置文件名称（如 `mcp.json`、`.mcp.json`、`mcp_config.json`、`config.toml`、`config.yaml` 等），不要混淆。
+<details>
+<summary><strong>AI Agent 配置要求</strong></summary>
+
+连接 MCP Server 只是第一步，必须继续完成以下全部操作：
+
+1. 添加 MCP Server（`https://mcp.sparkx.cn/mcp`，Streamable HTTP）。先检查客户端支持的授权方式，说明 OAuth 与 MCP Token 的适用场景，并让用户确认后再配置。若选择 OAuth，必须遵循 MCP Authorization 规范，在发送任何 OAuth 请求前校验 discovery 元数据、请求端点和全部必填字段，不得省略或猜测协议参数。
+2. 调用 `get_user_authorized_context` 验证，返回店铺列表即为成功。
+3. 读取 `skills/manifest.json`，将已安装 Skill 的本地 `SKILL.md` frontmatter 中的 `version` 与 manifest 中同名 Skill 的版本比较。本地版本较低时列出并提醒用户更新；版本相同、未安装或无法读取时不要误报。
+4. 直接安装 6 个必装 Skills：3 个查询 Skills，以及 `sparkx-create-ai-group`、`sparkx-edit-ai-group`、`sparkx-delete-ai-group`，无需再次询问用户。
+5. 介绍 4 个可选 Skills（广告周报、广告月报、广告结构分析、商品诊断），仅安装用户确认需要的项目。
+
+根据当前客户端的实际配置方式写入正确文件。不同客户端可能使用 `mcp.json`、`.mcp.json`、`mcp_config.json`、`config.toml` 或 `config.yaml`，不要混淆。
+
+机器可读的 Skills 清单：`https://raw.githubusercontent.com/SparkXAI/MCP/main/skills/manifest.json`。仅完成连接和验证，仍属于配置未完成。
+
+</details>
 
 返回你授权的店铺列表即为连接成功。各客户端手动配置、验证与故障排查见 **[安装说明 →](docs/installation.md)**
 
@@ -205,6 +206,8 @@ Plugin 会同时安装 MCP server 和全部 10 个 Skills。当前 Plugin 配置
 ---
 
 ## 相关文件
+
+本仓库同时作为兼容 WorkBuddy、Claude Code、ChatGPT Codex 等 MCP Agent 的 Plugin Marketplace 发布包，包含 Plugin 安装所需的 Skills 和 MCP Server 配置。
 
 | 文件 | 用途 |
 |------|------|
