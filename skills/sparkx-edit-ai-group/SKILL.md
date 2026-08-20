@@ -9,7 +9,7 @@ description: >-
   save_sp_sb_ai_managed_group (edit mode). Not for creating a group (use sparkx-create-ai-group)
   or deleting one (use sparkx-delete-ai-group).
 metadata:
-  version: 1.0.1
+  version: 1.0.2
 ---
 
 # Edit AI Managed Group
@@ -55,23 +55,27 @@ and [`references/action-space-matrix.md`](references/action-space-matrix.md).
 **If a request could map to more than one meaning, STOP and ask - don't pick one.**
 Guessing wrong changes live spend.
 
-**"budget" / "预算"** (e.g. "把预算调到 100" / "set the budget to 100") - candidate meanings:
-- 托管组总预算 (group total budget)
-- 托管组日预算 (group daily budget)
-- 组内所有 campaign 日预算之和 (sum of member campaigns' daily budgets)
-- 按表现调预算的固定值/百分比 (performance/dynamic budget *adjustment* - an automation, NOT
-  the budget value itself)
-- 预算重新分配 (budget reallocation across campaigns)
-- 单个 campaign 的预算 (a single campaign's budget - campaign-level, not a managed-group op)
+**"budget" / "预算"** (e.g. "把预算调到 100" / "set the budget to 100") - be precise which
+one, and whether it's a **target value** or an **increase**:
+- **托管组总预算 / group total budget** = the sum of the group's **enabled** campaigns'
+  daily budgets. Editing it **proportionally rescales every enabled campaign's daily
+  budget** to the new total (`totalBudget` / `totalDailyBudget` on read reflect this sum).
+- **单个 campaign 的日预算 / a campaign's daily budget** - campaign-level, and
+  **cannot be modified through the managed-group tools** (tell the user to use the platform
+  / campaign edit).
+- **按表现调预算 / performance (dynamic) budget** (`DYNAMIC_BUDGET`) - the value is an
+  **increase cap on top of the current budget, NOT a target** (fixed `+$num` or `+num%`;
+  e.g. $100 with 20 -> up to $120). **Its scope depends on 预算重新分配**: OFF = per enabled
+  campaign; ON = whole group (see [`references/coupling-rules.md`](references/coupling-rules.md)).
+- **预算重新分配 / budget reallocation** (`BUDGET_REDISTRIBUTE`) - a switch that also changes
+  the *scope* of 按表现调预算 (above).
 
-> `totalBudget` / `totalDailyBudget` are **read-side fields, not write params** - never
-> map a budget change onto them. **The current docs don't define how they're calculated -
-> don't infer a formula from the field name.** If the user wants that number changed,
-> confirm the actual business meaning first (group budget? member campaigns' budgets?
-> dynamic-budget strategy?). Whether these fields change after you edit the group budget
-> must be verified by reading back **after** the write - don't pre-infer.
-> Also, `budgetType`/`budgetRatio` live on the edit/batch path, so the exact field is
-> decided *after* ad type + path, not here.
+> **Target vs increase:** "把预算调到 X" is a **target value**; "按表现最多加 X" is an
+> **increase**. Never map one onto the other. When the user says "调预算" / "预算预期",
+> confirm which they mean - **托管组总预算 / a campaign's budget (targets)** vs **按表现调预算
+> 的增量上限 (an increase)** - before writing. The exact write field still depends on ad type
+> + path (`budgetType`/`budgetRatio` are edit/batch only); look it up in field-reference
+> once the meaning is fixed.
 
 **"bid / adjust bid" / "调价 / 出价 / 竞价"** - candidate meanings (field differs by ad
 type/path, look it up after): 按表现调竞价 · 广告位调价 (SP only) · 竞价范围 (min/max) ·
@@ -108,7 +112,20 @@ new value.
    substring `like` - exact-match in the results). Read each group's `aiGroupId`,
    `campaignType` (routing), `aiStatus`, and the current values of whatever you're
    about to change - SP/SB edit **merges** onto current config, and you want a before
-   value to verify against.
+   value to verify against. **If the request touches 按表现调预算 (dynamic budget), you MUST
+   also read the current 预算重新分配 status** - it decides whether the increase applies
+   per-campaign or to the whole group, so you can't correctly interpret the request without
+   it. Only ask the user about scope if you can't read that state or their intent is still
+   unclear - don't ask mechanically when it's already determinable.
+   - **To compute a budget cap for the preview, get the *enabled* campaigns properly:**
+     query `entity='campaign'` for the profile, **server-filter by `campaignState='enabled'`**
+     (a confirmed filterable field), **fully paginate**, then **filter to this group locally**
+     by each returned row's `aiGroupId`. (`aiGroupId` is **not** in the documented
+     filterable-field set for campaigns - even if some deployments accept it in `filters`,
+     don't rely on that; filter it client-side.) Use the resulting campaigns' `dailyBudget`
+     + their actual count. Do **not** use `numCampaign` - it may not equal the enabled count.
+     If you can't read the full campaign set, **don't state a definite cap** - explain the
+     calculation rule instead.
 2. **Disambiguate into a single, concrete mapping** (see "Disambiguate before writing"
    above). Determine the object level, the business meaning, the value type, and the unit.
    **If more than one mapping is plausible, STOP and ask the user - do not build any params
@@ -144,8 +161,13 @@ new value.
      routed schema exposes them. Tell the user to configure word lists in the platform.
 5. **Confirm before applying - especially for bulk and for running groups.** Show a change
    preview per group: **business meaning + resolved field + old -> new**, and how many
-   groups are affected. For a running group, note that some changes may not apply while AI
-   is on. Get an explicit go-ahead. **Clarification is not authorization** - a prior answer
+   groups are affected. **For a budget change, spell out the inputs and the effect**: current
+   group total & number of enabled campaigns, the 预算重新分配 state, the mode (fixed/percent),
+   and the resulting budget cap. Editing the group total proportionally rescales each enabled
+   campaign's daily budget; a 按表现调预算 value is an *increase cap* (per-campaign or
+   whole-group per 预算重新分配), not a target. For a
+   running group, note that some changes may not apply while AI is on. Get an explicit
+   go-ahead. **Clarification is not authorization** - a prior answer
    to an ambiguity question is not itself permission to write; you still need an explicit
    confirm of the actual change here before calling any write tool.
 6. **Verify - read back and compare.** Re-read the group(s) and confirm each changed
@@ -256,6 +278,7 @@ value as a write value** - look up the correct write value for the exact path yo
 - [`references/batch.md`](references/batch.md) - SD top-level and SP/SB wrapped batch protocols, operation parameters, ID-profile validation, three-state result
 - [`references/field-reference.md`](references/field-reference.md) - exact write field names + enums (incl. edit-only `*Type` fields)
 - [`references/action-space-matrix.md`](references/action-space-matrix.md) - capability support (AI / Rule / none) per SP / SB / SD, and `noRule` capabilities
+- [`references/coupling-rules.md`](references/coupling-rules.md) - companion-field couplings, the 按表现调预算 / 预算重新分配 scope relationship, and group-total-budget rescale behavior
 - [`references/budget-limits.md`](references/budget-limits.md) - site/account-type budget ranges (front-end rules MCP bypasses)
 - [`references/enum-i18n.md`](references/enum-i18n.md) - 中文 <-> English <-> code
 - [`references/platform-notes.md`](references/platform-notes.md) - shared write-tool behavior (MCP-bypass principle, silent-ignore rule, envelope, errors)

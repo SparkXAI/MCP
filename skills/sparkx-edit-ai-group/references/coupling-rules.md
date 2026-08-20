@@ -1,6 +1,7 @@
-# Action-space coupling rules (SP/SB `aiActionSettings`)
+# Action-space & budget coupling rules (SP / SB / SD)
 
-`aiActionSettings` is not just on/off switches - several switches are meaningless (or
+The first bullets cover SP/SB `aiActionSettings`; sections further down also cover SD and
+the group-total-budget behavior. `aiActionSettings` is not just on/off switches - several switches are meaningless (or
 fail / fall back to unintended defaults) unless you also send their companion fields.
 When enabling one, include the whole set. These are front-end-enforced linkages; MCP
 won't enforce them, so you must. (Exact field names: `field-reference.md`.)
@@ -19,6 +20,46 @@ won't enforce them, so you must. (Exact field names: `field-reference.md`.)
 - **Placement ranges** (`bidAdPlaceRangeStatus=1`) -> **at least one** of the `tos*`/
   `pdp*`/`ros*` min/max pairs non-null (don't enable the switch with all null); each pair
   `min >= 0`, `max <= 900`, min <= max.
+
+## Performance budget (按表现调预算) and budget reallocation (预算重新分配) are linked
+
+**按表现调预算** (`DYNAMIC_BUDGET`) - the value is an **increase cap on top of the current
+budget, NOT a target**. Mode `1`=percentage (`+num%`), `2`=fixed (`+$num`). **Fields by
+path:** SP/SB action space `budgetDynamicActionStatus`+`budgetNumType`+`budgetNum`; SD
+`budgetDynamicStatus`+`numType`+`num`; batch = per the `DYNAMIC_BUDGET` schema.
+
+**预算重新分配** (`BUDGET_REDISTRIBUTE`) - a switch that **changes the scope of 按表现调预算**.
+**Fields by path:** SP/SB action space `budgetRedistributeActionStatus`; SD
+`budgetRedistributeStatus`; batch = per the `BUDGET_REDISTRIBUTE` schema.
+
+**Scope - worked example.** A group with two enabled campaigns at **$100** and **$200**
+(group total **$300**), 按表现调预算 value = **20**:
+
+| 预算重新分配 | mode | how it applies | group max |
+|---|---|---|---|
+| OFF | fixed 20 | each campaign +$20 ($100->$120, $200->$220) | **$340** |
+| OFF | percent 20% | each campaign +20% ($100->$120, $200->$240) | **$360** |
+| ON | fixed 20 | whole group ($300 + $20) | **$320** |
+| ON | percent 20% | whole group ($300 + 20%) | **$360** |
+
+- **OFF = per enabled campaign** (each campaign's own daily budget may rise by the cap).
+- **ON = whole group** - you can only determine the **group-level** cap; you **cannot**
+  infer how much each individual campaign will end up with.
+- **Fixed vs percentage give different results** once campaign budgets differ - the
+  single-campaign "$100 -> $120" case hides this, so always distinguish the two modes.
+- **Whether to ask:** at **create**, the user must specify the mode (fixed/percent) and
+  预算重新分配 on/off. At **edit**, read the current 预算重新分配 first and **keep it unless
+  the user asked to change it** (state it in the preview). **Only ask** when the mode, the
+  scope, or the user's intent is still ambiguous. Either way, always make clear the number
+  is an *increase* (not a target) and show the full impact before executing.
+
+## Group total budget (托管组总预算) rescales campaigns proportionally
+
+托管组总预算 / group total budget = the **sum of the group's enabled campaigns' daily
+budgets** (`totalBudget` / `totalDailyBudget` on read reflect this). **Editing the group
+total proportionally rescales every enabled campaign's daily budget** to the new total -
+it is not an isolated field. State this effect in the change preview.
+
 ## Word-list fields are not supported
 
 All word-list settings are currently unsupported, including branded, non-branded,

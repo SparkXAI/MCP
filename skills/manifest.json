@@ -1,7 +1,7 @@
 {
   "$schema_note": "Machine-readable manifest of SparkX AI MCP official skills. Version fields must stay in sync with each skill's SKILL.md frontmatter.",
   "manifest_version": 1,
-  "updated_at": "2026-08-19",
+  "updated_at": "2026-08-20",
   "release": "v1.1.0",
   "skills": [
     {
@@ -15,7 +15,7 @@
     },
     {
       "name": "sparkx-query-entity-metadata",
-      "version": "1.1.1",
+      "version": "1.1.2",
       "required": true,
       "mcp_tool": "get_entity_metadata",
       "scope": "amazon_sa:ads_configuration:read",
@@ -33,7 +33,7 @@
     },
     {
       "name": "sparkx-create-ai-group",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "required": true,
       "mcp_tools": ["create_sd_ai_managed_group", "save_sp_sb_ai_managed_group"],
       "path": "sparkx-create-ai-group",
@@ -41,7 +41,7 @@
     },
     {
       "name": "sparkx-edit-ai-group",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "required": true,
       "mcp_tools": ["edit_sd_ai_managed_group", "save_sp_sb_ai_managed_group"],
       "path": "sparkx-edit-ai-group",
@@ -49,7 +49,7 @@
     },
     {
       "name": "sparkx-delete-ai-group",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "required": true,
       "mcp_tool": "delete_ai_managed_group",
       "path": "sparkx-delete-ai-group",

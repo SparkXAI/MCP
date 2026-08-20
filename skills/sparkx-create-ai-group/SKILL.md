@@ -10,7 +10,7 @@ description: >-
   for enabling or editing an existing group (use sparkx-edit-ai-group) or deleting one (use
   sparkx-delete-ai-group).
 metadata:
-  version: 1.0.1
+  version: 1.0.2
 ---
 
 # Create AI Managed Group
@@ -57,17 +57,28 @@ ask - don't guess.
 This section lists **business meanings only** - the exact field depends on ad type, so
 confirm the meaning first, then use the ad-type reference to pick the field.
 
-- **"budget" / "预算"** - candidate meanings: **group budget** vs **performance/dynamic
-  budget adjustment** (按表现调预算 / 动态预算 - an automation, not the budget value) vs
-  **budget reallocation** (预算重新分配) vs **a single campaign's budget** (campaign-level,
-  not settable via MCP). Which field, at create time:
+- **"budget" / "预算"** - decide the sense AND whether it's a **target value** or an
+  **increase**:
+  - **托管组总预算 / group total budget** (= sum of the group's enabled campaigns' daily
+    budgets) and **a single campaign's daily budget** are **target values**. Note: **a
+    single campaign's daily budget cannot be set through the managed-group tools** (it's
+    campaign-level - use the platform).
+  - **按表现调预算 / performance (dynamic) budget** is an **increase cap on top of the
+    current budget, NOT a target** (fixed `+$num` or `+num%`); its scope depends on **预算
+    重新分配** (OFF = per enabled campaign; ON = whole group). See
+    [`references/coupling-rules.md`](references/coupling-rules.md).
+  - **预算重新分配 / budget reallocation** - a switch that also changes the scope of 按表现调预算.
+  Which field, at create time:
   - **SD** uses `budget` + `budgetChange` (a boolean toggle) - **there is no `budgetType`
     at create** (`budgetType`/`budgetRatio` are edit/batch only).
   - **SP/SB create has no group-budget input at all** - only budget-related action-space
     switches. If the user wants an SP/SB group's spend budget set at creation, tell them
     that's not a create-time field here.
-  Never map "set budget to X" onto the dynamic-budget adjustment value; if the meaning
-  isn't clear, ask.
+  Never map "set budget to X" (a target) onto the dynamic-budget increase value; if the
+  meaning isn't clear, ask. When enabling 按表现调预算 at create, **set 预算重新分配
+  explicitly** - its scope (per-campaign vs whole-group) depends on it; don't rely on an
+  unknown default. To preview a cap, base it on the **enabled** campaigns among those
+  you're adding (use each one's `dailyBudget`).
 - **"target / goal" / "目标"**: 推广目标 `targetType` (1 growth / 2 stability / 3 volume /
   4 legacy) vs 目标 ACOS (`acos`). **Create has no `roas` field** - if the user says
   "目标 ROAS", do NOT build `roas`; tell them create can't set a target ROAS directly, and
@@ -241,6 +252,7 @@ come back generic - so still map the common ones yourself:
 - [`references/create-sp-sb.md`](references/create-sp-sb.md) - SP/SB create (`save_sp_sb_ai_managed_group`): core fields, SP-vs-SB differences, action-space **coupling rules** + example
 - [`references/field-reference.md`](references/field-reference.md) - exact **write** field names + enum values (write names != read names)
 - [`references/action-space-matrix.md`](references/action-space-matrix.md) - which action-space capabilities are supported (AI / Rule / none) per SP / SB / SD
+- [`references/coupling-rules.md`](references/coupling-rules.md) - companion-field couplings, the 按表现调预算 / 预算重新分配 scope relationship, and group-total-budget rescale behavior
 - [`references/budget-limits.md`](references/budget-limits.md) - site/account-type budget ranges (front-end rules MCP bypasses)
 - [`references/enum-i18n.md`](references/enum-i18n.md) - 中文 <-> English <-> code mapping (parse Chinese requests -> codes; render codes -> Chinese)
 - [`references/platform-notes.md`](references/platform-notes.md) - shared write-tool behavior (auth, response envelope, timeout, error shape)

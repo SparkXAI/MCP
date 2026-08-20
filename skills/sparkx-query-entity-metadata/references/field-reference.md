@@ -151,6 +151,11 @@ Sourced from a separate backend (`td-api getSaAiGroupList`), aggregated from the
 `aiGroupId`, `aiGroupName`, `aiStatus` (`0`=AI never turned on, `1`=AI currently running, `2`=AI turned off), `campaignType`, `targetType` (`1`=Drive Growth/`2`=Maintain Stable Orders/`3`=Event Boost), `targetAcos`, `aiPersonality` (1-5), `aiPersonalityUpdatedAt`, `profileId`, `profileName`, `countryCode`, `numCampaign`, `numProduct`, `campaignNameSign`, `createTime`, `createBy`, `createUid`, `hasEditAuth`, `isAutoPacing`, `statusOnDate`, `lastStatusOnDate`, `lastStatusOffDate`, `lastOnDays`, `lastOnDaysBegin`, `lastOnDaysEnd`, `totalBudget`, `totalDailyBudget`, `sbStyleNum`, `aiActionSettings`, `aiAutomation`
 
 - **`sbStyleNum`** (int/null): the **count** of SB ad styles in use — e.g. "3" means 3 different SB ad style/formats are running. This can answer "how many SB ad styles is this group using," but **not** "which specific style(s)" (product collection / store spotlight / video, etc) — that breakdown is not exposed by this field and is not otherwise documented in the platform spec. Don't infer or invent a style name from the count.
+- **`totalBudget` / `totalDailyBudget`** (number): the **sum of the group's enabled
+  campaigns' daily budgets** (i.e. 托管组总预算 / group total budget). These are **read-only
+  rollups** here. On the write side, editing the group total **proportionally rescales
+  every enabled campaign's daily budget** to the new total (see the create/edit skills) —
+  don't treat them as independent editable fields.
 - **`aiActionSettings`** (object): contains action-space on/off indicators. A relevant
   `xxxStatus` value of `0` means off and `1` means on.
 - **`aiAutomation`** (object): contains the corresponding mode indicators for action
