@@ -10,7 +10,7 @@ description: >-
   for enabling or editing an existing group (use sparkx-edit-ai-group) or deleting one (use
   sparkx-delete-ai-group).
 metadata:
-  version: 1.0.2
+  version: 1.0.3
 ---
 
 # Create AI Managed Group
@@ -82,9 +82,16 @@ confirm the meaning first, then use the ad-type reference to pick the field.
 - **"target / goal" / "目标"**: 推广目标 `targetType` (1 growth / 2 stability / 3 volume /
   4 legacy) vs 目标 ACOS (`acos`). **Create has no `roas` field** - if the user says
   "目标 ROAS", do NOT build `roas`; tell them create can't set a target ROAS directly, and
-  ask whether they want to set the promotion target or convert it to a target ACOS.
+  ask whether they want to set the promotion target or convert it to a target ACOS. Also:
+  "ACOS 优先模式 / ACOS priority" is the strict-ACOS switch (see the ACOS-priority item
+  below), **not** setting a target ACOS value - don't confuse them.
 - **AI on/off at creation**: see "AI on vs off at creation" below - only start AI if the
   user explicitly asked to create-and-start.
+- **"ACOS 优先模式 / strict ACOS / ACOS priority"** (`bidPerformanceStrictAcosStatus`) - a
+  sub-switch of 按表现调价, **SP only**, and only triggers with `targetType=2` +
+  `bidPerformanceStatus=1` + `aiPersonality>=3`. It's a tradeoff (may underspend / reduce
+  orders) - confirm with the user before enabling. See
+  [`references/coupling-rules.md`](references/coupling-rules.md).
 
 ## Workflow (same for every ad type)
 

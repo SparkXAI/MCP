@@ -9,7 +9,7 @@ description: >-
   save_sp_sb_ai_managed_group (edit mode). Not for creating a group (use sparkx-create-ai-group)
   or deleting one (use sparkx-delete-ai-group).
 metadata:
-  version: 1.0.2
+  version: 1.0.3
 ---
 
 # Edit AI Managed Group
@@ -81,7 +81,10 @@ one, and whether it's a **target value** or an **increase**:
 type/path, look it up after): 按表现调竞价 · 广告位调价 (SP only) · 竞价范围 (min/max) ·
 分时调价 (on SB this is Rule/RBA-only, and **MCP cannot read or edit RBA config** - if
 that's the intent on an SB group, tell the user it's not available through MCP and do
-**not** build write params). Ask which one.
+**not** build write params). Also **ACOS 优先模式 / strict ACOS / ACOS priority**
+(`bidPerformanceStrictAcosStatus`) is a sub-switch of 按表现调价 - **SP only, with strict
+preconditions** (`targetType=2` + `bidPerformanceStatus=1` + `aiPersonality>=3`) and a
+real tradeoff; see [`references/coupling-rules.md`](references/coupling-rules.md). Ask which one.
 
 **"off / pause / stop" / "关掉 / 关闭 / 暂停 / 停"** - three very different things:
 - **关闭托管组 AI** (stop the group's AI optimization) - a status change. **Never do this
@@ -97,7 +100,9 @@ that's the intent on an SB group, tell the user it's not available through MCP a
 
 **"target / goal" / "目标"**: 推广目标 `targetType` (1 growth / 2 stability / 3 volume /
 4 legacy) vs 目标 ACOS/ROAS. Also "ACOS 调到 25" (a value) vs "ACOS 降 20%" (a ratio) are
-different inputs - confirm which.
+different inputs - confirm which. **And note: "ACOS 优先模式 / ACOS priority" is the
+strict-ACOS switch (`bidPerformanceStrictAcosStatus`, see the bid item above), NOT setting
+a target ACOS value - don't confuse the two.**
 
 **Clarification is NOT authorization.** Even after the user answers the ambiguity, only
 produce a **change preview** (business meaning + resolved field + old -> new). Do **not**

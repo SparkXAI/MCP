@@ -60,6 +60,28 @@ budgets** (`totalBudget` / `totalDailyBudget` on read reflect this). **Editing t
 total proportionally rescales every enabled campaign's daily budget** to the new total -
 it is not an isolated field. State this effect in the change preview.
 
+## Strict ACOS / ACOS priority mode (`bidPerformanceStrictAcosStatus`)
+
+Page name **"ACOS 优先模式 / ACOS priority mode"** (a.k.a. Strict ACOS / strict ROAS). It's
+a **checkbox under 按表现调价 (bid-by-performance)** that makes the AI cut bids harder and
+faster when ACOS is badly off target. Field: `bidPerformanceStrictAcosStatus` (`0`/`1`).
+
+- **SP only** - SB and SD do not support it; don't send it for them.
+- **Requires ALL of these together, or it will NOT trigger** (don't claim it's active
+  otherwise): `targetType=2` (Maintain Stability / 保持稳定) **and** `bidPerformanceStatus=1`
+  (按表现调价 on, AI mode) **and** `aiPersonality >= 3`. Enabling it means setting/confirming
+  all three; `aiPersonality` 1-2 never triggers it.
+- **Auto Pacing wins:** if the group's `isAutoPacing` is on, Strict ACOS is **paused** until
+  Auto Pacing is turned off. Read `isAutoPacing` and tell the user if it will be suppressed.
+- **Scope:** affects **base bid only** (not targeting / budget / negatives); no weekday
+  scheduling (date-range only).
+- **Early Access / permission-gated:** the account/group may not have it enabled. If the
+  switch doesn't stick on read-back, tell the user it's Early Access (access-controlled) -
+  don't report it as a silent failure of your call.
+- **It's a tradeoff** - it can **underspend budget and reduce orders** in exchange for
+  hitting ACOS. **Confirm this tradeoff with the user before enabling**, and don't turn it
+  on by default for every stability-target group.
+
 ## Word-list fields are not supported
 
 All word-list settings are currently unsupported, including branded, non-branded,
