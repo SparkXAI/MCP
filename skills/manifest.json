@@ -41,7 +41,7 @@
     },
     {
       "name": "sparkx-edit-ai-group",
-      "version": "1.0.3",
+      "version": "1.0.4",
       "required": true,
       "mcp_tools": ["edit_sd_ai_managed_group", "save_sp_sb_ai_managed_group"],
       "path": "sparkx-edit-ai-group",
@@ -49,7 +49,7 @@
     },
     {
       "name": "sparkx-delete-ai-group",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "required": true,
       "mcp_tool": "delete_ai_managed_group",
       "path": "sparkx-delete-ai-group",

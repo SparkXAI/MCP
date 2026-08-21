@@ -8,7 +8,7 @@ description: >-
   group (use sparkx-edit-ai-group), editing config (use sparkx-edit-ai-group), or creating a group (use
   sparkx-create-ai-group).
 metadata:
-  version: 1.0.1
+  version: 1.0.2
 ---
 
 # Delete AI Managed Group
@@ -62,12 +62,10 @@ live campaigns.
    and read `aiStatus`, `numCampaign`, `campaignType` for the checks below. If more than
    one group matches, list the candidates and let the user pick - never guess which one
    to delete.
-   - **Also capture the group's full campaign list.** Query `entity='campaign'` for the
-     profile, **fully paginate**, then **filter to this group locally** by each row's
-     `aiGroupId`, and **save the campaign IDs** - you need the actual IDs (not just
-     `numCampaign`) to verify the disposal after deleting. (`aiGroupId` is not in the
-     documented filterable set for campaigns - even if a deployment accepts it in
-     `filters`, don't rely on that; filter client-side.)
+   - **Also capture the group's full campaign list.** Query `entity='campaign'` **filtered
+     by this `aiGroupId`** (server-side filterable for campaigns), **fully paginate**, and
+     **save the campaign IDs** - you need the actual IDs (not just `numCampaign`) to verify
+     the disposal after deleting.
 2. **Pre-flight checks:**
    - **AI must not be running.** A running group can't be deleted. `aiStatus`:
      `1`=running, `2`=turned off, `0`=never enabled - only `1` blocks deletion. If

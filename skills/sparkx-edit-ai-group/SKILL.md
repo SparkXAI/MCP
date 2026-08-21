@@ -9,7 +9,7 @@ description: >-
   save_sp_sb_ai_managed_group (edit mode). Not for creating a group (use sparkx-create-ai-group)
   or deleting one (use sparkx-delete-ai-group).
 metadata:
-  version: 1.0.3
+  version: 1.0.4
 ---
 
 # Edit AI Managed Group
@@ -123,11 +123,9 @@ new value.
    it. Only ask the user about scope if you can't read that state or their intent is still
    unclear - don't ask mechanically when it's already determinable.
    - **To compute a budget cap for the preview, get the *enabled* campaigns properly:**
-     query `entity='campaign'` for the profile, **server-filter by `campaignState='enabled'`**
-     (a confirmed filterable field), **fully paginate**, then **filter to this group locally**
-     by each returned row's `aiGroupId`. (`aiGroupId` is **not** in the documented
-     filterable-field set for campaigns - even if some deployments accept it in `filters`,
-     don't rely on that; filter it client-side.) Use the resulting campaigns' `dailyBudget`
+     query `entity='campaign'` **filtered by this group's `aiGroupId` and
+     `campaignState='enabled'`** (both are server-side filterable for campaigns),
+     **fully paginate**, then use the returned campaigns' `dailyBudget`
      + their actual count. Do **not** use `numCampaign` - it may not equal the enabled count.
      If you can't read the full campaign set, **don't state a definite cap** - explain the
      calculation rule instead.
