@@ -1,6 +1,6 @@
 ---
 name: sparkx-query-entity-metadata
-version: 1.1.2
+version: 1.1.3
 description: >-
   Query advertising entity metadata: name, status, configuration, settings (no time range or metrics).
   For finding entity lists, getting config details, discovering ad structure relationships.

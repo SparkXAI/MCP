@@ -25,7 +25,13 @@
 
 ### campaign
 
-**Return = filterable fields**:
+**Every campaign return field is filterable** - per the sparkxads API, for the campaign
+entity the filterable set = **all return fields, no exceptions** (so `aiGroupId`,
+`portfolioId`, `campaignStartDate`/`campaignEndDate`, and the `campaignAi*Date` fields can
+all be used in `filters`, not just the core fields below). The two tables are split for
+readability only.
+
+**Core fields:**
 
 | Field | Type | Enum |
 |---|---|---|
@@ -48,6 +54,8 @@ entity by `amazonCampaignId`, then use the matched row's internal `campaignId`. 
 coerce a long Amazon ID into the write field or infer one identifier from the other.
 
 **⚠️ "How much budget is left today?" cannot be reliably answered from `dailyBudget`/`currentBudget` alone.** These are configuration values, not a live spend ledger, and can change intraday. Combining them with `get_ads_perf`'s today's-`Spend` doesn't produce a reliable real-time remaining-budget figure either, since that metric is subject to the T+2 processing delay (see PLATFORM_NOTES.md). Tell the user this can't be computed reliably rather than presenting a subtraction as if it were precise.
+
+**More campaign fields (also filterable):**
 
 | Field | Type | Enum |
 |---|---|---|
