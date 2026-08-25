@@ -9,7 +9,7 @@ description: >-
   save_sp_sb_ai_managed_group (edit mode). Not for creating a group (use sparkx-create-ai-group)
   or deleting one (use sparkx-delete-ai-group).
 metadata:
-  version: 1.0.4
+  version: 1.1.0
 ---
 
 # Edit AI Managed Group
@@ -79,9 +79,10 @@ one, and whether it's a **target value** or an **increase**:
 
 **"bid / adjust bid" / "调价 / 出价 / 竞价"** - candidate meanings (field differs by ad
 type/path, look it up after): 按表现调竞价 · 广告位调价 (SP only) · 竞价范围 (min/max) ·
-分时调价 (on SB this is Rule/RBA-only, and **MCP cannot read or edit RBA config** - if
-that's the intent on an SB group, tell the user it's not available through MCP and do
-**not** build write params). Also **ACOS 优先模式 / strict ACOS / ACOS priority**
+分时调价 (on SB this is Rule/RBA-only; MCP can **read and explain** the retained Rule
+configuration through `get_entity_metadata`, but cannot edit it - if that's the intent on
+an SB group, show the current setup when useful, point the user to the platform for changes,
+and do **not** build write params). Also **ACOS 优先模式 / strict ACOS / ACOS priority**
 (`bidPerformanceStrictAcosStatus`) is a sub-switch of 按表现调价 - **SP only, with strict
 preconditions** (`targetType=2` + `bidPerformanceStatus=1` + `aiPersonality>=3`) and a
 real tradeoff; see [`references/coupling-rules.md`](references/coupling-rules.md). Ask which one.
@@ -187,21 +188,128 @@ new value.
    server-side from the authenticated token - never send or fabricate it. If log access
    is unavailable, say the business state was verified but the audit entry was not.
 
-## Unsupported scheduling
+## Scheduling - use `save_sp_sb_ai_group_schedule`
 
-The current managed-group write tools expose no `scheduleType`, `scheduleDate`,
-`scheduleStartDate`, or `scheduleEndDate` fields, and the backend **rejects** schedule
-params on v1 groups (prod-confirmed 2026-08-13). Do not invent these parameters.
-Creating, editing, or deleting a managed-group schedule is not available through this
-MCP version; tell the user to use the platform until the tool schema adds scheduling.
+Schedules are **not** fields on the edit tools (there is still no `scheduleType` /
+`scheduleDate` / `scheduleStartDate` / `scheduleEndDate` - don't invent them). They are a
+separate tool: **`save_sp_sb_ai_group_schedule`**, with reads via
+`get_entity_metadata(entity='aiGroup_schedule')`.
+
+**SP/SB only** - there is no SD schedule tool. If the user asks to schedule an SD group, say
+it's not available for Sponsored Display.
+
+### Parameters
+
+```json
+{
+  "request": {
+    "profileId": 2618208845223116,
+    "aiGroupId": 29123,
+    "schedules": [ { "...": "one object per schedule" } ]
+  }
+}
+```
+
+The call takes a single top-level `request` object (same wrapping as the SP/SB
+`save_sp_sb_ai_managed_group` calls in [`references/batch.md`](references/batch.md));
+inside it, `profileId`, `aiGroupId`, and a non-empty `schedules` array are all required.
+Each item:
+
+| Field | Type | Notes |
+|---|---|---|
+| `id` | long | **Omit/null = create**, `>0` = update that schedule |
+| `isActive` | boolean | `false` **with a valid `id` = delete** that schedule |
+| `timeType` | int | `1` = fixed date window, `2` = weekly repeat |
+| `startDate` / `endDate` | string | `YYYY-MM-DD`, `timeType=1` only |
+| `weekDays` | int[] | `timeType=2` only. **`0` = Sunday, 1-6 = Mon-Sat** |
+| `optimizeType` | int | `1`=drive growth, `2`=control cost, `3`=volume. **`timeType=1` only - required there, rejected on `timeType=2`** |
+| `acos` | number | Target ACOS, x100 scale. Same `timeType` rule as above |
+| `aiPersonality` | int | `1`-`5`. Same `timeType` rule as above |
+| `aiActionSettings` | object | Per-schedule action space, same shape as the group |
+| `aiAutomation` | object | Per-schedule rules, **keyed by rule number** (`"2"`,`"4"`,`"5"`,`"13"`,`"17"`,`"19"`,`"20"`,`"181"`,`"182"`), each at least `{"status": 0}` |
+
+### The three rules that will bite you
+
+1. **Weekly schedules must NOT carry `optimizeType` / `acos` / `aiPersonality`.** Passing any
+   of them on a `timeType=2` item is a **hard error** - even though the downstream API
+   requires those three on every schedule. The tool reads the parent group and fills them in
+   for you, which is why you must leave them out. (If the parent group's detail can't be
+   read, the call fails - so make sure the group exists and is readable first.) For a
+   fixed-window schedule, these three are required from you.
+2. **Word-list settings are stripped silently.** `aiActionSettings.targetOptimization` and
+   `brandOptimization` are removed server-side on schedules. Don't offer them, and don't
+   claim they were applied.
+3. **Overlaps are rejected downstream**, surfacing as `Schedule_Date_Overlap`. Before
+   writing, read the existing schedules (`entity='aiGroup_schedule'`) and check your new
+   window/weekdays against them, so you can tell the user *which* schedule conflicts instead
+   of relaying an opaque error.
+
+### Validate these yourself - the backend does not
+
+The platform UI enforces these; the API does not, so a "successful" write can still be
+nonsense. Check before sending:
+
+| # | Rule | Why it matters |
+|---|---|---|
+| 1 | `startDate` ≥ **tomorrow** | The backend accepts past dates; such a schedule is simply already expired and never runs |
+| 2 | `endDate - startDate` ≤ **365 days** | The backend accepts longer ranges; the UI caps at one year |
+| 3 | `acos` ∈ **(0, 1000]** | The backend does not range-check schedule ACOS |
+| 4 | No overlap between schedules (dates **and** weekdays) | The backend does reject this, but with an opaque `Schedule_Date_Overlap` - pre-checking lets you name the conflicting schedule |
+| 5 | `weekDays` ⊆ `[0..6]`, no duplicates | No backend guard |
+
+One more interaction to surface to the user: if the group runs **bid dayparting or budget
+dayparting**, changing a weekly schedule's `weekDays` can change when those rules execute.
+The UI warns about this; say it out loud rather than letting the user discover it.
+
+Deleting is `isActive: false` + the existing `id` - state clearly to the user that you're
+removing a schedule, and read back afterwards to confirm it's gone.
+
+## Templates - readable, and applicable via `templateId`
+
+- **Read** with `get_ai_group_template`: no args = list (`searchName` fuzzy match,
+  `createdBy`, `page`, `pageLimit` default 50, `applyFlag=1` to include system presets);
+  `templateId` = full detail of one. This is a read behind the **write** scope.
+- **Apply** by passing `templateId` (>0) to `edit_sd_ai_managed_group` or
+  `save_sp_sb_ai_managed_group`. It supplies `acos`, `optimizeType`, `status`,
+  `budgetDynamicStatus`, `numType`, `num`, `campaignNameSign`, `targetHarvestStatus`,
+  `budgetRedistributeStatus`, `aiPersonality` plus action-space/automation config.
+- **Explicit params beat template values**; omitted fields fall back to the template.
+- **Priority: `templateId` > `operation` > plain field edit.** If you pass both `templateId`
+  and a batch `operation`, the template path wins and the operation is ignored - never send
+  both expecting both to apply.
+- **Cross-type apply is supported and sanitized for you.** A template isn't bound to an ad
+  type; applying an SP template to an SB group zeroes the template's SP-only fields
+  (`bidAmazonBusinessStatus`, `btb*`, `bidDaypartStatus`,
+  `bidPerformanceStrictAcosStatus`, `bidAdPlace*`, `tos`/`pdp`/`ros` bounds,
+  `structPause*`) rather than failing. **This applies only when you omit
+  `aiActionSettings`.** Send `aiActionSettings` yourself and the template's action-space
+  config is skipped entirely (yours wins, no merge) and the SB compatibility check applies
+  as usual - an SP-only field with a non-zero value then fails the whole call. Don't
+  hand-build `aiActionSettings` on a cross-type template apply, and tell the user which
+  parts of the template won't carry over.
+- **Hard error**: a template whose target-harvest (rule 4) or negative-target (rule 5) config
+  is bound to specific campaigns/ad groups (`isSelf=2`, rule enabled) is rejected, because
+  this tool can't carry the bindings. Tell the user to apply that template in the UI or pick
+  one using "current object" scope.
+- **No template writes.** You cannot create, edit, delete, or "save as" a template through
+  MCP. Read + apply only.
+
+Because a template can flip AI on and rewrite several settings at once, read its detail and
+show the user what will change **before** applying it to an existing group.
 
 ## RBA mode restriction
 
 - The tool may switch an existing group from **RBA (Rule mode) to AI mode**.
 - It must **not** switch a group from **AI mode to RBA**.
-- RBA condition/action details cannot currently be read or edited through MCP. Do not
-  infer the current RBA configuration or attempt to preserve, modify, or recreate it.
-  If the user requests an RBA configuration change, tell them to use the platform.
+- **RBA configuration is readable, but not writable.** A rule-mode group's actual conditions,
+  actions, condition items, time periods and hour matrices come back from
+  `get_entity_metadata(entity='aiGroup')` under `aiAutomation.{ruleType}` - so you *can* show
+  the user their current rule setup and explain it accurately. What you cannot do is change
+  it: there is no MCP tool that writes rule conditions or actions. For any RBA config change,
+  point the user to the platform.
+- When reporting a rule setup, relay unlabeled leaves verbatim (only confirmed fields carry a
+  `...Text` companion) and never reuse a label across rule types - the same raw value means
+  different things under different rules.
 
 ## Bulk / batch edits
 
@@ -237,7 +345,7 @@ parameters) - **not** a bare array of ids. Read
 - **Group by tool, and split by ad type first.** SD -> `edit_sd_ai_managed_group` (flat,
   top-level); SP/SB -> `save_sp_sb_ai_managed_group` (`request`-wrapped) - different
   shapes, see batch.md. **SP + SB can share one SP/SB batch**, but only for operations
-  **both** support; **SP-only operations** (`structOptimization`, `targetPausedAdd`) must
+  **both** support; **SP-only operations** (`structOptimization`) must
   exclude SB ids. **SD is always its own call** - never mixed with SP/SB. The backend
   rejects a wrong-tool/wrong-type call (e.g. `campaignType must be sponsoredProducts or
   sponsoredBrands`), but split by each group's `campaignType` from metadata **before**

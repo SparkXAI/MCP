@@ -350,7 +350,7 @@ Placement type filter. Narrows placement operations to specific placement types.
 | newValue | string | Value after the change |
 | countryCode | string | Country code |
 | **currencyCode** | string | **Currency of this row's monetary change** (e.g. `"USD"`/`"JPY"`), mapped from `countryCode`. Always local currency — there is no cross-profile USD conversion for logs |
-| createdDate | string | Operation timestamp, UTC, `yyyy-MM-dd HH:mm:ss` |
+| createdDate | string | Operation timestamp, `yyyy-MM-dd HH:mm:ss`. **⚠️ Timezone is not fixed** — `aiGroup` rows are UTC always; `campaign`/`adGroup`/`target`/`placement` rows are **store-local when you pass one `profileId`** and **UTC when you pass several**. Verified 2026-08 on a US (`America/Los_Angeles`) profile: the same pause record returned `2026-08-24 00:01:06` for one profileId and `2026-08-24 07:01:06` for two. Always label the zone, never merge single- and multi-profile results, and remember a mixed-entity response can contain both clocks in one time-sorted list (so it is not reliably chronological). See SKILL.md → "createdDate Timezone" |
 | changedBy | string | Who made the change: `ai`/`manual`/`automation`/etc, or a user identifier |
 | aiGroupScheduleId | long | Schedule ID (present on aiGroup-related logs) |
 

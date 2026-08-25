@@ -7,8 +7,20 @@ belongs to the `sparkx-edit-ai-group` skill.
 
 Create mode is **AI mode only**. Use `aiActionSettings.xxxStatus` for the action-space
 on/off switch. When that action space has a corresponding `aiAutomation` mode field,
-set it to `0` (AI); never set it to `1` (Rule/RBA). Rule condition/action configs and
-template-based creation are not supported through this tool.
+set it to `0` (AI); never set it to `1` (Rule/RBA). Rule condition/action configs cannot be
+written through this tool (they *can* be read - see `sparkx-query-entity-metadata`).
+
+**Template-based creation is supported**: pass `templateId` (>0) and the template's config
+becomes the baseline, with any field you send explicitly overriding it. Read templates first
+with `get_ai_group_template`. One hard restriction: a template whose rule 4 / rule 5 is
+bound to specific campaigns and ad groups (`isSelf=2`, rule enabled) is rejected. See the
+main SKILL.md section "Creating from a template".
+
+**If you send no `aiActionSettings` at all, the server fills in ad-type-appropriate
+defaults** (an SB-specific default set for `sponsoredBrands`, otherwise the SP set). That's
+usually what you want for a basic create - don't hand-build a full object just to look
+thorough. It also means "I didn't send it" is not the same as "it's off": read the group back
+if the user needs to know what's active.
 
 ## Required for create
 
@@ -46,16 +58,31 @@ switch.
 
 ## SP vs SB differences (SB is not SP)
 
-Some capabilities exist only for SP. If the group is SB, do **not** send these -
-per the 2026-08-14 backend spec they should be rejected, but today they may instead be
-silently ignored (looks successful, does nothing):
+Some capabilities exist only for SP. On an SB group these are now **rejected outright**, not
+silently ignored - the call fails with `X is not supported for sponsoredBrands; remove it or
+set to 0` (or `set to null` for numeric range fields), and **every** offending field is
+listed at once. Nothing is applied.
 
-- `aiActionSettings.structPauseProductStatus` / `structPauseCampaignStatus`
-  (struct optimization) - **SP only**
-- `aiActionSettings.targetPausedAddStatus` - **SP only**
+SP-only `aiActionSettings` fields (complete list as enforced):
+
+| Group | Fields |
+|---|---|
+| B2B bidding | `bidAmazonBusinessStatus`, `btbRangeStatus`, `btbMin`, `btbMax` |
+| Bid dayparting | `bidDaypartStatus` |
+| Strict ACOS | `bidPerformanceStrictAcosStatus` |
+| Placement bidding | `bidAdPlaceStatus`, `bidAdPlaceRangeStatus`, `tosMin`, `tosMax`, `pdpMin`, `pdpMax`, `rosMin`, `rosMax` |
+| Struct optimization | `structPauseProductStatus`, `structPauseCampaignStatus` |
+
+Sending `0` (or `null` for the numeric ones) is accepted - only an *enabled* value trips the
+check. Best practice is to omit them entirely on SB.
+
+**Template exception**: applying an SP template to an SB group (`templateId` set, and
+`aiActionSettings` **omitted**) does not fail - the server zeroes those SP-only fields for
+you. Send `aiActionSettings` yourself and you lose that: the template's action-space config
+is skipped and your values go through the check above.
 
 When the user is on SB and asks for one of these, tell them it isn't available for
-Sponsored Brands rather than sending it quietly. The full "which capability is
+Sponsored Brands rather than sending it and letting the whole call fail. The full "which capability is
 supported (AI / Rule / none) per SP / SB / SD" matrix is in
 [`action-space-matrix.md`](action-space-matrix.md) - check it before enabling any
 action-space switch (notably: **SB's BidDaypart has no AI mode**, and

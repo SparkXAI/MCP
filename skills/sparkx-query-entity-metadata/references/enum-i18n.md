@@ -161,6 +161,35 @@ All are `0`/`1` except `targetPausedAddStatus` which is `0`/`1`/`2`.
 | `1` | Pause targets on; targeting supplementation unchecked | 定向暂停开启，不勾选定向补充 | ターゲティングの一時停止：オン、ターゲティング補充は未選択 |
 | `2` | Pause targets on; targeting supplementation checked | 定向暂停开启，勾选定向补充 | ターゲティングの一時停止：オン、ターゲティング補充を選択 |
 
+## Automation rule / Rule-based automation terms
+
+| Code / concept | EN | ZH | Notes |
+|---|---|---|---|
+| `aiAutomation` | Rule-based automation settings | 自动化规则设置 | Readable on `aiGroup` / `aiGroup_schedule`; rule config is not writable through MCP. |
+| `2` | Bid dayparting | 分时调价 | Automation template and action-space ruleType. |
+| `3` | Budget rules (legacy/deprecated) | 预算规则（老版废弃） | Standalone legacy automation rule; keep for interpreting historical campaigns, not for new setup. |
+| `4` | Harvest Keywords / Add Search Keywords | 添加搜索词 / 定向收割 | Help Center template name is 添加搜索词; AI Action Space name is 定向收割. |
+| `5` | Add Negative Keywords | 添加否定词 / 添加否定定向 | Help Center template name is 添加否定词; AI Action Space name is 添加否定定向. |
+| `13` | Budget dayparting | 分时预算 | Automation template and action-space ruleType. |
+| `15` / `18` | Targeting rules | 定向规则 | Standalone automation rule types; new targeting rule is `18`. |
+| `17` | Budget rules | 预算规则 | Also described in action-space docs as budget by performance / boost budget. |
+| `19` | Placement Rules | 广告位规则 | Standalone automation supports SP/SB; managed-group placement action space may be narrower. |
+| `20` | Campaign activation/pausing (New) | 开启/暂停广告活动（新版） | New pause/enable campaign automation rule. |
+| `181` | Bid by performance | 按表现调价 | Managed-group action-space ruleType. |
+| `182` | Target pause/supplement | 定向暂停/补充 | Managed-group action-space ruleType. |
+| Product inventory rules | Product inventory rules | 商品库存规则 | Standalone automation; not an AI Action Space switch. |
+| Frequency settings / Execution frequency | Frequency settings / Execution frequency | 频率设置 / 执行频次 | Rule schedule settings. |
+| Associate Campaigns | Associate Campaigns | 关联广告活动 | Campaign-template binding. |
+| Applicable objects | Applicable objects | 生效对象 | Campaigns, selected ad groups, selected targets, or another rule-specific scope. |
+| Condition group | Condition group | 条件组 | Groups are OR; conditions inside one group are AND. Preserve the returned connectors. |
+| Data period / Data cycle | Data period / Data cycle | 数据周期 | Lookback window used to evaluate historical conditions. |
+| Exclusion period | Exclusion period | 排除时间范围 | Most recent days removed from the lookback window. |
+| Strategy based on real-time data of the current day | Strategy based on real-time data of the current day | 基于当日实时数据的策略设置 | Evaluates data from store-day 00:00 through the current execution time. |
+| Strategy based on historical data | Strategy based on historical data | 基于历史数据的策略设置 | Evaluates a configured historical lookback window. |
+| Timed budget changes | Timed budget changes | 定时变更预算 | Scheduled part of Budget Rules (`ruleType=17`), distinct from Budget Dayparting (`13`). |
+| Budget utilization | Budget utilization | 预算利用率 | Current-day spend divided by the latest daily budget at execution time. |
+| Budget callback / reset | Budget callback / reset | 预算回调 / 恢复预算 | Optional end-of-day reset in a current-day budget strategy; do not infer enablement from residual raw config. |
+
 ## asinInventoryStatus
 
 | API value | EN | ZH | JA |

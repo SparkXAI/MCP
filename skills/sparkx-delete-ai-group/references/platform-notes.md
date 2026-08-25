@@ -1,8 +1,29 @@
 # Platform notes - managed-group write tools
 
 Shared behavior for the managed-group write tools (`create_sd_ai_managed_group`,
-`save_sp_sb_ai_managed_group`, `edit_sd_ai_managed_group`, `delete_ai_managed_group`).
+`save_sp_sb_ai_managed_group`, `edit_sd_ai_managed_group`, `delete_ai_managed_group`,
+`save_sp_sb_ai_group_schedule`) and the template read tool (`get_ai_group_template`).
 This file ships inside each managed-group skill so it travels with the skill.
+
+## Tool map
+
+| Tool | What it does | Scope |
+|---|---|---|
+| `create_sd_ai_managed_group` | Create an SD managed group | `amazon_sa_managed_group:write` |
+| `save_sp_sb_ai_managed_group` | Create or edit an SP/SB managed group (single or batch) | `amazon_sa_managed_group:write` |
+| `edit_sd_ai_managed_group` | Edit SD managed groups (batch by `ids`) | `amazon_sa_managed_group:write` |
+| `save_sp_sb_ai_group_schedule` | Create / update / delete SP/SB group schedules | `amazon_sa_managed_group:write` |
+| `get_ai_group_template` | Read managed-group templates (list / detail) | `amazon_sa_managed_group:write` |
+| `delete_ai_managed_group` | Delete (archive) a group, releasing or migrating campaigns | `amazon_sa_managed_group_delete:write` |
+
+Two things worth noting: `get_ai_group_template` is a **read** operation that sits behind
+the **write** scope (a read-only token cannot list templates), and delete has its own
+separate scope — a token that can create/edit may still be unable to delete.
+
+**Templates are read-only.** There is no MCP tool that creates, edits, or deletes a
+template. `get_ai_group_template` reads them; the write tools *apply* one via `templateId`.
+If a user asks to "save these settings as a template", tell them that has to be done in the
+platform UI.
 
 ## Enforce the constraints yourself - for clear errors and to catch what slips through
 
@@ -23,11 +44,24 @@ doesn't.
 ## Unsupported features -> tell the user, don't send
 
 Some settings don't apply in a given context - a wrong ad type, an unsupported mode, or
-a feature not available yet. Per the 2026-08-14 backend spec these should be **rejected
-with an error**, but where that validation isn't implemented yet the call may instead
-return `success` with **nothing happening** (silently ignored). **If the user asks for
-something not supported in their context, tell them plainly and skip that field - never
-send it silently and never present it as if it took effect.**
+a feature not available yet. **Several of these are now hard errors** rather than silent
+no-ops, and the error arrives *instead of* any part of your write being applied:
+
+- **SP-only action-space fields sent for an SB group** -> rejected, listing every offending
+  field (`X is not supported for sponsoredBrands; remove it or set to 0`).
+- **A non-SD group id sent to `edit_sd_ai_managed_group`** -> rejected with a pointer to
+  `save_sp_sb_ai_managed_group`.
+- **SP-only batch operations on a batch containing SB groups** -> rejected.
+- **`optimizeType`, `acos`, or `aiPersonality` on a weekly (`timeType=2`) schedule** ->
+  rejected; those are inherited from the parent group.
+- **A template whose harvest/negative rules are bound to specific campaigns/ad groups**
+  (`isSelf=2` with `status=1`) -> rejected, because this tool can't carry those bindings.
+- **A group whose `campaignType` can't be determined on delete** -> rejected rather than
+  guessed.
+
+Others are still accepted-but-ignored. So the rule stands: **if the user asks for something
+not supported in their context, tell them plainly and skip that field - never send it
+silently and never present it as if it took effect.**
 
 ## Auth & scope
 
@@ -35,22 +69,44 @@ send it silently and never present it as if it took effect.**
   get authorized `profileId`s; pass only an authorized one.
 - `tenantId` / `userId` / `userName` are injected server-side from the token - never
   pass or fabricate them.
-- Writes require the managed-group write scope. **Delete needs its own separate
-  scope** - a token that can create/edit may still not be able to delete.
+- Writes require `amazon_sa_managed_group:write`. **Delete requires
+  `amazon_sa_managed_group_delete:write`** - a token that can create/edit may still not be
+  able to delete. See the tool map above.
+- **A profileId outside the token's grant is rejected outright** (`profileId X is not
+  authorized for the current user`) - nothing partial is applied. Take profile IDs verbatim
+  from `get_user_authorized_context`.
 
 ## Response envelope
 
 Success:
 ```json
-{ "isError": false, "toolName": "<tool>", "data": { "status": "success", "result": { "aiGroupId": 827136 } } }
-```
-Failure:
-```json
-{ "isError": true, "data": { "error": "<message>", "recoveryHint": "<hint, if any>" } }
+{ "isError": false, "toolName": "<tool>", "requestId": "a1b2c3d4e5f6",
+  "data": { "status": "success", "result": { "aiGroupId": 827136 } } }
 ```
 
-Always check `isError` before reading `data`. When `recoveryHint` is present, use it and
-relay it to the user.
+Failure - **there are two shapes**, distinguished by whether the failure came from the tool
+or from the surrounding pipeline:
+```json
+{ "isError": true, "toolName": "<tool>", "requestId": "a1b2c3d4e5f6",
+  "errorType": "invalid_params", "message": "<message>", "recoveryHint": "<hint, if any>" }
+```
+```json
+{ "isError": true, "error": "business_error", "service": "Amazon_SA_Service",
+  "message": "<downstream message>" }
+```
+
+- Check `isError` first, then look for `errorType` **or** `error` - don't assume only one
+  exists. Pipeline failures (`rate_limited`, `token_invalid`, `permission_denied`,
+  `scope_missing`, `business_error`, `timeout`) use `error`; parameter/validation failures
+  use `errorType`.
+- **The configured write budget is 20 calls/min** per tenant+tool and per user+tool (reads
+  get 120); whether limiting is enabled is an environment setting, so treat it as a ceiling
+  to plan against rather than something you can count on being off. A serial "write, read
+  back, write, read back" loop over many groups can hit it - pace it, and on `rate_limited`
+  wait `retryAfterSeconds` rather than retrying immediately.
+- `requestId` is your support handle. **Quote it when reporting a failed write to the
+  user.**
+- When `recoveryHint` is present, use it and relay it to the user.
 
 **Batch results are three-state - don't judge by `isError` alone.** A batch operation
 can partially succeed and still come back with `isError:false`:
@@ -94,6 +150,31 @@ on an AI-running group can be silently skipped downstream. After any write, read
 group back with `get_entity_metadata(profileIds=[...], entity='aiGroup',
 userContext='...')` and confirm the fields you set actually took the values you
 expected.
+
+### ⚠️ Read-back returns the *currently effective* config - a missing field is not a failure
+
+`get_entity_metadata`'s `aiGroup` response is a projection, not the raw stored record. It is
+first trimmed to what the group's `campaignType` supports, then reduced to what is actually
+in effect:
+
+- a switch that is **off** drops its dependent fields (turn `bidAdPlaceStatus` off and
+  `tosMin`/`tosMax`/`pdpMin`/`pdpMax`/`rosMin`/`rosMax` disappear entirely);
+- a rule running in **AI mode** is **omitted from `aiAutomation` altogether**. An empty
+  `aiAutomation` is ambiguous by itself: pair it with the effective `aiActionSettings`
+  switches to distinguish action spaces that are off from enabled action spaces in AI mode;
+- a rule in **Rule mode** keeps its config but drops AI-only parameters.
+
+So verify in this order:
+
+1. Read back the **switch** you set and confirm its value.
+2. Only then look for its dependent fields - and only expect them if the switch is on.
+3. Treat "field absent under an off switch" as **expected**, never as evidence the write
+   failed. Equally, don't diff two read-backs field-by-field and call every disappearance a
+   regression: flipping one switch off legitimately removes a whole family of fields.
+
+When you can't confirm a value because it isn't returned, say that plainly ("the switch is
+off, so that parameter isn't in effect and isn't reported") rather than guessing at a stored
+value or re-sending the write.
 
 For multiple writes against the same object set, execute serially and read back after
 each call. Never run dependent writes concurrently. When operation-log read access is

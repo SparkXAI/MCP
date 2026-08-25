@@ -2,14 +2,15 @@
 name: sparkx-ads-structure-analysis
 description: >-
   Analyze how ad spend and efficiency break down across a structural dimension — campaign type
-  (SP/SB/SD), marketplace/site, portfolio, or weekday-vs-weekend — and diagnose where spend share
+  (SP/SB/SD), marketplace/site, portfolio, weekday-vs-weekend, or hour-of-day — and diagnose where spend share
   and efficiency don't match (over-invested underperformers, under-invested strong performers).
   Optional sub-scenarios: SP deep-dive (manual vs auto targeting), SB new-to-brand focus. Use when
   the user asks "我 SP/SB/SD 结构合理吗", "各站点谁强", "SB 新客到底行不行", "工作日和周末哪个好",
   "structure analysis", "campaign type breakdown". Not for a single-entity trend/anomaly check (use
   sparkx-weekly-ads-report / sparkx-monthly-ads-report / a lighter ad-hoc analysis skill), product-level diagnosis
   (use sparkx-product-diagnosis), or keyword-level diagnosis (a dedicated skill, not yet built).
-version: 1.0.0
+metadata:
+  version: 1.0.1
 ---
 
 # Ads Structure Analysis
@@ -25,7 +26,7 @@ This skill does **not** map to a single MCP tool of its own — it orchestrates 
 
 **Read those two SKILL.md files first** (parameter formats, field-naming rules, the Ratio Metric Display Rule) plus [`references/platform-notes.md`](references/platform-notes.md) (auth flow, error handling, pagination, date-range limits, currency rules). This document only covers logic specific to structural analysis; it doesn't repeat what the base skills already document.
 
-Based on the original `ads_structure_analysis` concept sketch in `skill-design-draft.md` (Group 2 · 专项深度分析), rewritten against the new tool's conventions from the start — carries forward the same discipline established across `sparkx-weekly-ads-report`/`sparkx-monthly-ads-report`: full `profileIds` resolution rules, currency-aware thresholds, output-language adaptivity, disclosed sampling fallback, and zero-denominator handling.
+Rewritten against the new tool's conventions from the start — carries forward the same discipline established across `sparkx-weekly-ads-report`/`sparkx-monthly-ads-report`: full `profileIds` resolution rules, currency-aware thresholds, output-language adaptivity, disclosed sampling fallback, and zero-denominator handling.
 
 ## Output Language: Always Match the User, Never Hard-Code Chinese or English
 
@@ -49,7 +50,7 @@ Based on the original `ads_structure_analysis` concept sketch in `skill-design-d
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `profileIds` | array[long] | No | — | See "Resolving `profileIds`" below |
-| `breakdownBy` | enum | No | `campaignType` | `campaignType` \| `marketplace` \| `portfolio` \| `dayOfWeek`. See "Breakdown Dimensions" for how each is actually queried — some require client-side derivation, not a native `groupBy` |
+| `breakdownBy` | enum | No | `campaignType` | `campaignType` \| `marketplace` \| `portfolio` \| `dayOfWeek` \| `hourOfDay`. See "Breakdown Dimensions" for how each is actually queried — some require client-side derivation, not a native `groupBy` |
 | `dateStart` / `dateEnd` | string (`YYYY-MM-DD`) | No | Trailing 30 days ending yesterday | The analysis window. Must satisfy `get_ads_perf`'s 90-day span / 15-month lookback caps like any other call |
 | `focusMetrics` | array[string] | No | `["Spend", "Sales", "ACOS", "ROAS", "CPA"]` | Which metrics drive the share/efficiency comparison. `CPA` is included by default alongside `ACOS` — the product's own canonical "Campaign Type Analysis" board treats them as equally core, not `ACOS` alone. Must be valid for the entities involved — check `sparkx-query-ads-performance`'s Metrics × Entity Support Matrix |
 | `includeTrend` | bool | No | `true` | Whether to include a per-segment trend view (Step 3) alongside the single-period snapshot — on by default, matching how the product's own dashboards present this analysis (trend lines, not just a static table). Set `false` for a lighter, snapshot-only response |
@@ -78,6 +79,17 @@ Case 4's threshold exists because a silent multi-store aggregate can hide a sing
 
 **`dayOfWeek`** — **not a native `groupBy` expression.** `get_ads_perf`'s time-aggregation options are calendar day/week/month/quarter/year (see `sparkx-query-ads-performance`'s Time Aggregation table) — there is no "bucket every Monday together regardless of week" expression. To do this breakdown: pull daily-granularity data (`select: ["date"]`, one row per day across the window), then **client-side** map each row's `date` to a weekday name and aggregate the 4-5 occurrences of each weekday within the window yourself. Don't attempt to express this as a single server-side `groupBy`.
 
+**`hourOfDay`** — available via hourly (AMS) data, with tighter limits than every other breakdown here. Query `factEntity: "campaign"` with `timeGranularity: "hourly"` and explicitly include both `date` and `hour` in `select`; hourly mode changes the source table but does not inject `hour` into the selected grouping. Aggregate the returned rows by hour **client-side** (same shape as `dayOfWeek`).
+
+Constraints you must respect and disclose:
+- **Campaign level only.** There is no hourly adGroup / target / placement / ASIN data — `timeGranularity: hourly` on any other entity is a hard error. So an hourly breakdown cannot be crossed with `portfolio` or `marketplace` beyond what campaign-level `select` fields give you.
+- **7-day window per call, not 30 or 90.** This breaks the skill's default trailing-30-day window: either narrow to ≤7 days, or split the requested window into contiguous ≤7-day calls and aggregate hour-of-day across all chunks. Call it a **sample** only when you deliberately cover a subset (for example, the latest 14 of 30 days), and disclose that subset. If every day is covered by non-overlapping chunks, describe it as a split full-window query, not sampling.
+- **Averaging**: divide each hour's totals by the number of *days* covered, not the number of rows.
+- **T+2 delay** hits hardest here: the most recent hours are incomplete, so drop or label the trailing partial day rather than reporting a fake evening collapse.
+- **Timezone is not stated** for hourly buckets, so avoid strong claims like "spend peaks at 8pm local"; describe the shape ("a clear evening peak") and note the hour labels' zone is unconfirmed.
+
+A keyword × placement structural view is also possible (`factEntity: "keywordPlacement"`, SP only, hourly, ≤7 days) — see `sparkx-query-ads-performance`'s hourly/AMS example. Note its AI metrics are placeholders (`AISpend`/`AISales` = 0, `AIACOS`/`AIROAS` = null), so don't put AI columns in that table.
+
 ## Sub-Scenarios
 
 **`spDeepDive`**: narrow to `campaign.campaignType_ = sponsoredProducts`, then further break down by `campaign.targetingType_` (`manual`/`auto`) — compare manual vs auto targeting's spend share and efficiency within SP specifically. **Don't confuse this with `target.targetingType_`**, a different field with different values (`keyword`/`target`/`auto`/`audience` — categorizing the target's own type, not the campaign's manual/auto setting).
@@ -86,7 +98,7 @@ Case 4's threshold exists because a silent multi-store aggregate can hide a sing
 
 **`weekdayWeekend`**: use the `dayOfWeek` breakdown above, then bucket further into two groups (Mon-Fri vs Sat-Sun) rather than 7 separate days, if that's what the user actually asked ("workday vs weekend" is coarser than "which specific day of the week").
 
-**Companion breakdowns customers often ask for alongside `campaignType`**: the product's own "Campaign Type Analysis" dashboard template pairs the campaign-type view with a **targeting-type breakdown** (manual vs auto — covered here via `spDeepDive`) and a **search-term match-type breakdown** (broad/phrase/exact, etc.). The second one is **not covered by this skill** — it belongs to the future search-term-analysis skill (`skill-design-draft.md`'s 2.3, not yet built). If a customer's ask naturally extends into match-type territory (e.g. "结构分析完了，再看看搜索词匹配类型"), say plainly that this skill's scope stops at campaign/targeting-type structure and point them to that future capability instead of trying to fold match-type analysis into this skill's output.
+**Companion breakdowns customers often ask for alongside `campaignType`**: the product's own "Campaign Type Analysis" dashboard template pairs the campaign-type view with a **targeting-type breakdown** (manual vs auto — covered here via `spDeepDive`) and a **search-term match-type breakdown** (broad/phrase/exact, etc.). The second one is **not covered by this skill** — it belongs to a future search-term-analysis skill (not yet built). If a customer's ask naturally extends into match-type territory (e.g. "结构分析完了，再看看搜索词匹配类型"), say plainly that this skill's scope stops at campaign/targeting-type structure and point them to that future capability instead of trying to fold match-type analysis into this skill's output.
 
 ## Workflow
 
@@ -111,7 +123,7 @@ Default: trailing 30 days ending yesterday (T+2 delay — see below). If the use
   "userContext": "Structure analysis - breakdown by campaign type"
 }
 ```
-`select` changes per `breakdownBy`: `["campaign.campaignType_"]` for `campaignType`, `["profile.countryCode_"]` for `marketplace`, `["portfolio.portfolioId_", "portfolio.portfolioName_"]` for `portfolio`, `["date"]` for `dayOfWeek` (aggregate to weekday buckets client-side per "Breakdown Dimensions" above). **Recompute ACOS/ROAS/CTR/CVR from the summed base metrics per segment** rather than requesting them directly alongside a `select` that spans the whole window in one row per segment — request the base metrics (`Impressions`/`Clicks`/`Spend`/`Sales`/`Conversions`) and derive the ratios, so there's no ambiguity about which period/grouping a pre-computed ratio belongs to.
+`select` changes per `breakdownBy`: `["campaign.campaignType_"]` for `campaignType`, `["profile.countryCode_"]` for `marketplace`, `["portfolio.portfolioId_", "portfolio.portfolioName_"]` for `portfolio`, `["date"]` for `dayOfWeek` (aggregate to weekday buckets client-side per "Breakdown Dimensions" above), and `["date", "hour"]` plus `timeGranularity: "hourly"` for `hourOfDay` (aggregate the same hour across dates client-side). **Recompute ACOS/ROAS/CTR/CVR from the summed base metrics per segment** rather than requesting them directly alongside a `select` that spans the whole window in one row per segment — request the base metrics (`Impressions`/`Clicks`/`Spend`/`Sales`/`Conversions`) and derive the ratios, so there's no ambiguity about which period/grouping a pre-computed ratio belongs to.
 
 **If `subScenario` is set, this call changes further — don't run the plain breakdown call above and expect Step 5 to somehow retrofit it:**
 - **`spDeepDive`**: add `{"campaign.campaignType_": "sponsoredProducts"}` to `filters`, and add `campaign.targetingType_` to `select` alongside (or instead of, if not also doing the base `campaignType` breakdown) the `breakdownBy` dimension.
@@ -121,6 +133,8 @@ Default: trailing 30 days ending yesterday (T+2 delay — see below). If the use
 **b. Segment-level entity config** (only if the diagnosis needs config context, e.g. explaining *why* a segment underperforms): `get_entity_metadata` for the relevant entity (`campaign`, `portfolio`, etc.) to pull status/settings for the segments identified as imbalanced in Step 4.
 
 **c. Segment-level weekly trend** (only when `includeTrend=true`, the default): same shape as (a), but `select` adds a weekly time-aggregation expression alongside the breakdown dimension — e.g. `["campaign.campaignType_", "toMonday(parseDateTime32BestEffort(date)) as week"]` — so each segment gets one row per week across the window instead of one row for the whole period. **Use weekly, not daily, granularity for the trend view**: a 30-day default window is ~4-5 weekly points per segment, which reads cleanly in a text report; daily granularity (30 points × N segments) is what the product's own web dashboard can render as a line chart but is too dense for a markdown table. Recompute `ACOS`/`CPA` per segment per week from that week's own summed base metrics — never average pre-computed weekly ratios across weeks, and never derive a week's ratio from another week's base metrics.
+
+**Exception for `breakdownBy=hourOfDay`: do not issue this separate weekly-trend call.** The 24-point intraday curve derived from Step 2a's `date` + `hour` rows is already this mode's trend output, and its ≤7-day source window does not produce a meaningful 4-5-point weekly series. Treat `includeTrend` as satisfied by the intraday curve; only add a day-by-day comparison when the user explicitly asks, using the same rows client-side rather than a weekly aggregation expression.
 
 **⚠️ `breakdownBy=dayOfWeek` or `subScenario=weekdayWeekend` need a different shape here — the breakdown "dimension" isn't a native field to add alongside `week` the way `campaign.campaignType_`/`profile.countryCode_`/`portfolio.portfolioId_` are.** There's no server-side field for "which weekday" to combine with a week aggregation. Instead: `select: ["date"]` only (same as the base breakdown call), pull daily rows across the whole window, then **client-side** derive two labels per row — the weekday/weekend segment (per "Breakdown Dimensions" above) and the week bucket it falls in — and organize the trend as segment × week from those two derived labels together. Don't expect the server to return a "Monday" or "weekday" row directly at any granularity.
 
@@ -262,7 +276,7 @@ Follows the shared error envelope used by both underlying tools (`isError`/`erro
 - Periodic WoW/MoM cadence recaps → `sparkx-weekly-ads-report` / `sparkx-monthly-ads-report`
 - Creative-type (SBV) breakdown → not currently a queryable capability, see Data Boundaries
 - Product-level diagnosis → `sparkx-product-diagnosis`
-- Keyword/search-term-level diagnosis → a dedicated skill (not yet built, see `skill-design-draft.md`'s 2.3)
+- Keyword/search-term-level diagnosis → a dedicated skill (not yet built)
 - Single-campaign root-cause investigation → [ACOS root-cause investigation example](../sparkx-query-ads-performance/references/example-acos-root-cause-investigation.md)
 
 ## Version History
@@ -273,3 +287,5 @@ Follows the shared error envelope used by both underlying tools (`isError`/`erro
 - **v0.2.1** (2026-07-24) · Two more review issues, both confirmed against the file. (1) Step 1's `language` guidance still told the agent to pass `language` to `get_entity_metadata` as well as `get_ads_perf` — but `get_entity_metadata` has no `language` parameter in its documented parameter list (same class of bug already fixed in `sparkx-product-diagnosis`); corrected to scope `language` to `get_ads_perf` only, with `get_entity_metadata` enum values localized via the returned `{field}Text` companion fields or `sparkx-query-entity-metadata`'s own `enum-i18n.md`. (2) Step 2c's weekly-trend data pull only illustrated the case where the breakdown dimension is a native field (e.g. `campaign.campaignType_`) added alongside a `week` aggregation expression — but `breakdownBy=dayOfWeek`/`subScenario=weekdayWeekend` have no native field to add that way, since "which weekday" isn't a server-side dimension; added an explicit note that for those cases the trend pull is still `select: ["date"]` only, with both the weekday/weekend label and the week bucket derived client-side per date, then organized as segment × week from those two derived labels together.
 - **v0.2.2** (2026-07-28) · Renamed the cross-reference "weekly-aggregation example" → "aggregation-over-time example" (Step 2's split-window guidance and `references/platform-notes.md`) so it matches the base `sparkx-query-ads-performance` skill's actual file, `example-aggregation-over-time.md` — the old name predated the file's rename and no longer resolved. Doc-only; no behavioral change.
 - **v0.2.3** (2026-07-28) · Added an explicit dependency declaration to the Scope section (needs `sparkx-query-ads-performance`/`sparkx-query-entity-metadata` installed as sibling skills for the `../query-.../…` cross-references to resolve). Links unchanged — they're correct for the standard flat `.claude/skills/<name>/` layout; the note just makes the install dependency explicit.
+- **v1.0.0** (2026-08-18) - First stable release; moved from `skills/optional/` to the top-level `skills/` folder alongside the required skills.
+- **v1.0.1** (2026-08-25) - Added an `hourOfDay` breakdown backed by hourly (AMS) data, with its campaign-only / 7-day / sampling-disclosure constraints spelled out. Platform-behavior sync: all-or-nothing `profileIds`, strict `pageSize`/`page` validation, `language` default `en`. Removed a reference to a design draft that doesn't ship with the skill.

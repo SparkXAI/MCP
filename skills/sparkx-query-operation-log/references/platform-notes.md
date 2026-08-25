@@ -1,6 +1,6 @@
 # SparkX AI MCP Read Tools — Shared Platform Notes
 
-This file holds behavior that is **common to all 3 read tools** (`get_ads_perf`, `get_entity_metadata`, `get_operation_log`). It ships as `references/platform-notes.md` **inside this skill's own folder** — this copy travels with the `sparkx-query-operation-log` skill even if a Skill Hub installs/updates/downloads one skill folder at a time, since the reference file is nested under the same folder, not a sibling directory. The other two SparkX AI skills (`sparkx-query-ads-performance`, `sparkx-query-entity-metadata`) each carry an identical copy of this file under their own `references/` folder for the same reason — this is intentional duplication for delivery robustness, not a mistake. Read this once per session before making tool-selection decisions.
+This file holds behavior that is **common to all 3 read tools** (`get_ads_perf`, `get_entity_metadata`, `get_operation_log`). It ships as `references/platform-notes.md` **inside each skill's own folder** — so this copy travels with the skill you're reading even if a Skill Hub installs/updates/downloads one skill folder at a time, since the reference file is nested under the same folder, not a sibling directory. Every skill that reads platform data (the three read skills plus the report/analysis skills built on them) carries a byte-identical copy for the same reason — this is intentional duplication for delivery robustness, not a mistake. Read this once per session before making tool-selection decisions.
 
 ## Auth Flow
 
@@ -28,32 +28,38 @@ How to use this:
 - `profiles[].profileName` → resolve store-name references
 - **User didn't specify a store** → default to passing **all** authorized `profileIds` (cross-store aggregate; monetary metrics come back in USD — see Currency below)
 
+**Always source `profileIds` from this call's response verbatim.** Never hand-type an ID, reuse one from an earlier session, or carry one over from a user message without confirming it appears in `profiles[]` — unauthorized IDs now fail the whole request (see below).
+
 ## Permission Scopes
 
 Each tool requires a specific OAuth scope on the token. If a call fails with an auth/permission error, this is the likely cause — tell the user their token/role is missing the corresponding scope rather than guessing at a query bug.
 
 | Tool | Required scope |
 |---|---|
-| `get_ads_perf` | `amazon_sa:performance:read` |
-| `get_entity_metadata` | `amazon_sa:ads_configuration:read` |
-| `get_operation_log` | `amazon_sa:ads_logs:read` |
+| `get_ads_perf` | `amazon_sa_performance_data:read` |
+| `get_entity_metadata` | `amazon_sa_ads_configuration:read` |
+| `get_operation_log` | `amazon_sa_ads_logs:read` |
 
-## profileIds Intersection Logic
+## profileIds Authorization: All-or-Nothing
 
-**All 3 tools intersect the requested `profileIds` with the token's authorized `profileIds`** — they do NOT reject unauthorized IDs outright:
+**All 3 tools require every requested `profileId` to be authorized. There is no silent intersection — one unauthorized ID fails the entire request.**
 
-- effective query scope = requested `profileIds` ∩ authorized `profileIds`
-- if the intersection is **empty**, the tool returns an **empty result set**, not an error
-- the response's `effectiveProfileIds` field reflects the actual (post-intersection) scope — always check this field, especially when the user asked about a specific store, to confirm the store you meant was actually in scope
+- every value in `profileIds` must appear in `get_user_authorized_context`'s `profiles[]`, and must be a positive integer
+- if any requested ID is outside the authorized set, the call fails with `isError:true`, `errorType: invalid_params`, message `Requested profileIds contain unauthorized values` — **no partial results, no empty success**
+- non-positive or non-numeric values fail with `Parameter 'profileIds' must contain only positive integers`
+- `effectiveProfileIds` in the response echoes back the scope that was actually queried; since the request now fails outright on any mismatch, treat this field as a confirmation echo rather than a "did anything get dropped?" check
 
-This matters for "replace profile X with all currently-authorized profiles" style requests: passing a profile ID not in scope silently drops it rather than erroring, so cross-check `effectiveProfileIds` against what you expected before reporting a "0 results" answer as if it were real business data.
+Practical consequences:
+- For "swap store X for all my current stores" style requests, re-call `get_user_authorized_context` and use its list as-is. Don't append or splice IDs from memory.
+- A permission change mid-session (store removed from the user's access) turns previously-working calls into hard failures. On `Requested profileIds contain unauthorized values`, re-fetch the authorized context and tell the user which store is no longer in scope — don't retry the same ID list.
+- `entity='aiGroup_schedule'` on `get_entity_metadata` is stricter still: it needs **exactly one** authorized `profileId` (see that tool's skill).
 
 ## Diagnosing Zero/Empty Results
 
 Any of the 3 tools can legitimately return zero rows for reasons that have nothing to do with "no data exists." Before telling the user "there's no data for that," work through this sequence — don't jump straight to that conclusion from the first empty response:
 
 1. **Check `isError`.** If `true`, this isn't an empty-data situation at all — it's an error (see the error-handling section above). Handle it as an error, not as "no results."
-2. **Check `effectiveProfileIds`.** If it's empty or missing profiles you expected, the requested `profileIds` didn't actually intersect with the token's authorized set (see profileIds Intersection Logic above) — the query never ran against the store(s) you meant. Fix the profile scope and retry before concluding anything about the data.
+2. **Check `effectiveProfileIds`.** An unauthorized profile can no longer cause a silent empty result — that fails as `invalid_params` with `Requested profileIds contain unauthorized values` (see profileIds Authorization above), so it shows up in step 1, not here. What this field is still good for: confirming you queried the store the user actually meant. If the user asked about "the JP store" and `effectiveProfileIds` holds the US profile, the empty result is a targeting mistake on your side — fix the profile and retry before concluding anything about the data.
 3. **Check the date range for T+2 delay effects (`get_ads_perf` only) — but note this is different from a range violation.** If `dateStart`/`dateEnd` genuinely exceed the 90-day span or 15-month lookback, that's a request-construction mistake that should surface as `isError:true` (`errorType: invalid_params`) per the error-handling rules above — it should not come back as a silent empty success. If you're instead seeing `isError:false` with empty/incomplete rows for a *valid* range that includes "today" or very recent days, that's the T+2 delay: recent data genuinely hasn't finished processing yet, which is a legitimate (if unhelpful) empty-but-correct result — not a bug and not "no data exists," just "not processed yet."
 4. **Confirm the requested fields/metrics are actually valid for the `factEntity`/`entity` in use** (see the Metrics × Entity Support Matrix). Requesting an unsupported combination is documented as a common source of `invalid_params` errors — so this should also come back as `isError:true`, not a silent empty result. If you're getting empty-but-non-error rows, an invalid metric/entity combination is an unlikely explanation; look at filters and data existence instead (steps 5-6).
 5. **Remove your business filters (`filters`) and retry.** If removing filters (state=enabled, spend thresholds, etc.) suddenly returns rows, the entity/data exists but didn't match your filter conditions — the honest answer to the user is "nothing matches your filter criteria," not "you have no data at all." These are different statements — don't conflate them.
@@ -63,50 +69,82 @@ Any of the 3 tools can legitimately return zero rows for reasons that have nothi
 
 ## Error Response Format
 
-All 3 tools use the same error envelope:
+**There are two error shapes, and they use different field names.** Check for `isError:true` first, then look for `errorType` *or* `error` — don't assume only one exists.
+
+**Shape A — tool-execution errors** (parameter validation, query failures) use `errorType`:
 ```json
 {
   "isError": true,
+  "toolName": "get_ads_perf",
+  "requestId": "a1b2c3d4e5f6",
   "errorType": "invalid_params",
-  "message": "Parameter 'profileIds' is required and cannot be empty"
+  "message": "Parameter 'profileIds' is required and cannot be empty",
+  "recoveryHint": "..."
 }
 ```
 
-**`errorType` enum**:
-
-| errorType | Meaning | Common cause |
-|---|---|---|
-| `invalid_params` | Bad parameters | Missing required param, bad date format, date span over limit |
-| `rate_limited` | Rate-limited | Business-level rate limit triggered — retry after a delay |
-| `query_error` | Query failure | Backend service call failed |
-| `serialization_error` | Serialization failure | Rare fallback case |
-
-**Rate-limit errors carry extra fields**:
+**Shape B — pipeline errors** (raised before/around tool execution: auth, rate limit, downstream service) use `error`:
 ```json
 {
   "isError": true,
-  "errorType": "rate_limited",
-  "dimension": "tenant_per_minute",
+  "error": "rate_limited",
+  "dimension": "tenant",
   "retryAfterSeconds": 30,
-  "message": "Rate limit exceeded on dimension [tenant_per_minute]. Retry after 30 seconds."
+  "message": "Rate limit exceeded on dimension [tenant]. Retry after 30 seconds."
 }
 ```
 
-**How to handle each errorType when talking to the user:**
-- `invalid_params` → this is almost always a query-construction bug on the agent's side (bad field name, missing required param, date range too wide). Fix the call and retry — don't tell the user "the tool doesn't support this" until you've checked field names/param names against this skill's reference tables.
-- `rate_limited` → wait `retryAfterSeconds` before retrying the *same* call. Don't immediately retry in a loop. If it recurs, tell the user the query is being throttled and suggest narrowing scope (smaller date range, fewer profiles) to reduce call volume.
-- `query_error` → backend failure, not a param problem. Retry once; if it persists, tell the user the data source is temporarily unavailable rather than implying their question is unanswerable.
-- `serialization_error` → rare edge case; report to the user as a transient tool error, retry once.
+`requestId` is present on responses (success and error) and is the support handle. **When you report a tool failure to the user, include `requestId`** — it's what lets the platform team trace the call. It may be absent in local/dev environments.
+
+**Error identifier enum** (union of both shapes):
+
+| identifier | Shape | Meaning | Common cause |
+|---|---|---|---|
+| `invalid_params` | A | Bad parameters | Missing required param, bad date format, date span over limit, unauthorized `profileIds`, `pageSize` out of range, illegal `timeGranularity` |
+| `query_error` | A | Query failure | Backend query call failed |
+| `serialization_error` | A / B | Serialization failure | Rare fallback case |
+| `rate_limited` | B | Rate-limited | Token bucket exhausted on one dimension — retry after `retryAfterSeconds` |
+| `rate_limit_service_unavailable` | B | Rate limiter down | The limiter fails **closed**: when it can't check, the request is rejected (429), not let through |
+| `token_invalid` | B | Auth failure (401) | Token expired/invalid |
+| `permission_denied` / `scope_missing` / `api_not_authorized` | B | Auth failure (403) | Token lacks the tool's scope, or the user's role lacks the underlying permission |
+| `profile_out_of_range` | B | Auth failure (403) | Requested profile outside the token's grant |
+| `business_error` | B | Downstream service error | Carries a `service` field (e.g. `Amazon_SA_Service`); the message is the downstream error |
+| `timeout` | B | Query timeout | Narrow the range and retry |
+
+**The configured rate-limit policy** (token-bucket, per 60s window). Whether limiting is switched on is an environment setting, so you may never hit these — but plan against them rather than assuming they're off:
+
+| Layer | Dimension | Budget |
+|---|---|---|
+| Pre-auth | client IP | 60 / min |
+| Pre-auth | token prefix | 300 / min |
+| Business | tenant + tool name | read **120 / min**, write 20 / min |
+| Business | user + tool name | read **120 / min**, write 20 / min |
+
+The `dimension` field on a `rate_limited` error tells you which bucket you hit: `ip`, `token_prefix`, `tenant`, or `user`. All 3 read tools count as reads (120/min per tool, per tenant and per user). A "loop pages until `hasNextPage=false`" plan over a large account can realistically hit this — pace the loop and raise `pageSize` toward the cap instead of firing many small pages.
+
+**How to handle each error when talking to the user:**
+- `invalid_params` → almost always a query-construction bug on the agent's side (bad field name, missing required param, date range too wide, unauthorized profile, out-of-range `pageSize`). Fix the call and retry — don't tell the user "the tool doesn't support this" until you've checked field names/param names against this skill's reference tables.
+- `rate_limited` → wait `retryAfterSeconds` before retrying the *same* call. Don't retry in a loop. If it recurs, tell the user the query is being throttled and narrow scope (smaller date range, fewer profiles, fewer pages).
+- `rate_limit_service_unavailable` → not your query's fault and not retryable immediately; the platform is failing closed. Tell the user the service is temporarily rejecting requests.
+- `token_invalid` / `permission_denied` / `scope_missing` / `profile_out_of_range` → an auth/permission problem, not a query bug. Name the scope the tool needs (see Permission Scopes) and tell the user to have their token/role updated. Retrying the same call won't help.
+- `query_error` / `business_error` / `timeout` → backend failure, not a param problem. Retry once; if it persists, tell the user the data source is temporarily unavailable (quote `requestId`) rather than implying their question is unanswerable.
+- `serialization_error` → rare edge case; report as a transient tool error, retry once.
+
+Messages are sanitized server-side: SQL, tokens, signed URLs, internal hostnames, stack traces, and raw table names are redacted (you may see `[SQL_REDACTED]`, `[redacted_token]`, `[internal]`, `[table]`). Don't treat a redaction marker as corruption, and don't try to reconstruct what was removed.
 
 Always check `isError` before reading `rows` — do not assume a response without `isError:false` explicitly checked is safe to parse as data.
 
 ## Pagination Rules
 
-| Tool | Pagination style | Default pageSize | Max pageSize |
-|---|---|---|---|
-| `get_ads_perf` | `page` + `pageSize` | 100 | 500 |
-| `get_entity_metadata` | `page` + `pageSize` | 100 | 500 |
-| `get_operation_log` | single non-`aiGroup` entity: `page` + `pageSize`; multi-entity or `aiGroup`-only: limit-only | 100 | 1,000 (`aiGroup`-only 10,000) |
+| Tool | Pagination style | Default pageSize | Max pageSize | Out-of-range value |
+|---|---|---|---|---|
+| `get_ads_perf` | `page` + `pageSize` | 100 | 500 | **Error** |
+| `get_entity_metadata` | `page` + `pageSize` | 100 | 500 | **Error** |
+| `get_operation_log` | single non-`aiGroup` entity: `page` + `pageSize`; multi-entity or `aiGroup`-only: limit-only | 100 | 1,000 (`aiGroup`-only 10,000) | Clamped silently |
+
+**The two behaviors are different — this bites when you compute `pageSize` instead of hard-coding it.** On `get_ads_perf` and `get_entity_metadata`, a `pageSize` of `0`, a negative number, or anything over `500` fails the call with `invalid_params` (`Parameter 'pageSize' must be between 1 and 500`); `page` ≤ 0 fails with `Parameter 'page' must be greater than 0`. Nothing is clamped for you. So a derived value like `pageSize = min(topN, 500)` must also be floored at 1 — `topN=0` is now an error, not an empty page. `get_operation_log` still clamps (it takes `min(pageSize, max)` and doesn't complain), so don't port either assumption to the other tools.
+
+`get_entity_metadata` with `entity='aiGroup_schedule'` ignores pagination entirely and returns every schedule for the group in one call; its response omits `page`/`pageSize`/`hasNextPage`.
 
 `get_operation_log` has **two modes decided by `entities`**. When `entities` is exactly one non-`aiGroup` entity: **real pagination**; loop `page` while `hasNextPage=true` to retrieve the complete set (raise `pageSize` toward 1,000 to cut round trips). When `entities` is empty/multiple or only `aiGroup`: **limit-only**; a single call caps at `pageSize` (max 1,000, or 10,000 for `aiGroup`-only), always time-descending; check `truncated`. On `truncated=true` you cannot page; first prefer steering the user to a single entity (real pagination), otherwise split the date range into non-overlapping sub-windows and recurse (see `sparkx-query-operation-log`'s "Getting a Complete Count"); adding `resourceIds`/`operationType`/`changeBy` filters is a last resort (changes *what* you're searching for; flag the result as partial).
 
@@ -116,9 +154,12 @@ Always check `isError` before reading `rows` — do not assume a response withou
 
 | Tool | Max date span | Earliest lookback | Format |
 |---|---|---|---|
-| `get_ads_perf` | 90 days | 15 months | `YYYY-MM-DD` |
+| `get_ads_perf` (daily) | 90 days | 15 months | `YYYY-MM-DD` |
+| `get_ads_perf` (hourly — `timeGranularity: hourly`, or `factEntity: keywordPlacement`) | **7 days** | 15 months | `YYYY-MM-DD` |
 | `get_operation_log` | 90 days | 15 months | `YYYY-MM-DD` |
 | `get_entity_metadata` | No date limit (no date params at all) | — | — |
+
+**Hourly (AMS) queries are capped at 7 days, not 90.** This applies to `timeGranularity: hourly` (campaign only, SP+SB+SD) and to `factEntity: keywordPlacement` (SP only, hourly by nature). Exceeding it is an error, not a truncation. `hourly` on any entity other than `campaign` is also an error — it is not ignored and does not fall back to daily. `keywordPlacement` additionally uses asymmetric field naming (bare names in the request, `_`-suffixed keys in the response) and a restricted metric set. See `sparkx-query-ads-performance` for the full hourly rules.
 
 These are two **separate** hard constraints on the `dateStart`/`dateEnd` request parameters, not "auto-truncate":
 1. **Max span is 90 days, counting both endpoints (inclusive).** Precisely: `dateEnd - dateStart` (as a plain date subtraction) must be **≤ 89**, not ≤ 90 — since both `dateStart` and `dateEnd` count as covered days, a subtraction of 90 actually spans 91 inclusive calendar days, one more than the limit. Think of it as "≤ 90 inclusive calendar days," and derive the subtraction bound (89) from that, not the other way around. **Weekly/monthly aggregation (`select: [..., "toMonday(...) as week"]`) does NOT let you bypass the span limit either way** — it only reduces the number of *rows* a single already-compliant call returns. If the user wants a window longer than 90 days (e.g. "performance over the last 12 months by month"), you **must first split into multiple calls, each spanning ≤90 inclusive days** (a full year typically needs **5** such calls, not 4 — calendar quarters are 91-92 days and don't reliably fit under the 90-day cap, so don't split by quarter; see sparkx-query-ads-performance's aggregation-over-time example for a worked, verified split), and *then*, within each call, optionally use week/month aggregation in `select` to reduce that call's row count. Splitting is mandatory; aggregation is optional and orthogonal.
@@ -137,21 +178,43 @@ If a user's requested range exceeds 90 days, **proactively split it** into seque
 | `dateStart`/`dateEnd` request params (`get_ads_perf`, `get_operation_log`) | `YYYY-MM-DD` | `"2026-06-01"` |
 | `date` dimension field returned in `get_ads_perf` rows (daily grouping) | `YYYYMMDD` (no dashes) | `"20240601"` |
 | `campaignStartDate`/`campaignEndDate` fields in `get_entity_metadata` (both as returned values and as filter values) | `YYYYMMDD` (Ymd, no dashes) | `"20260101"` |
-| `createdDate` field in `get_operation_log` rows | Full timestamp, UTC | `"2026-06-15 14:30:00"` |
+| `createdDate` field in `get_operation_log` rows | Full timestamp, **timezone varies by entity + `profileIds` count** — see the next section | `"2026-08-24 07:01:06"` |
 
 Concretely: when you *request* a date range, always use `YYYY-MM-DD`. When you *read or filter* the `date`/`campaignStartDate`/`campaignEndDate` data fields, use `YYYYMMDD` with no separators — e.g. `{"campaignStartDate": {">=": "20260101", "<=": "20260131"}}`, not `{"campaignStartDate": {">=": "2026-01-01"}}`. Getting this backwards is a common cause of a filter silently matching nothing or an `invalid_params` error.
 
-### ⚠️ Unconfirmed: What timezone does `dateStart`/`dateEnd` filtering use?
+### ⚠️ `get_operation_log`'s `createdDate` timezone depends on your request shape
 
-**This is a genuine gap in the platform spec, not something to guess at.** The spec documents inconsistent timezone conventions on different fields — e.g. `get_operation_log`'s `createdDate` and `aiGroup.aiPersonalityUpdatedAt` are UTC, while `aiGroup.createTime` is explicitly "store timezone" (profile-local) — but it never states which timezone `dateStart`/`dateEnd` are interpreted in when resolving a date boundary like "today" or "yesterday" for filtering.
+**Confirmed by testing (2026-08): the timezone of `createdDate` is not fixed — it varies with the entity type and with how many `profileIds` you passed.**
 
-This matters most for:
-- **Multi-country `profileIds` queries**: if you resolve "yesterday" using the *caller's* timezone (e.g. Beijing time) while the underlying filter is actually applied in the *store's* timezone (e.g. US Pacific) or in UTC, a query for "US store, yesterday's operations" can be off by up to a full day near the boundary — pulling the wrong day's data, or missing part of the intended day.
-- **`get_operation_log`** specifically, since its `createdDate` values are UTC but the request-level `dateStart`/`dateEnd` boundary this filters against is not documented as being interpreted in UTC (or any other specific zone).
+| Entity in `entities` | profileIds count | `createdDate` timezone | Example |
+|---|---|---|---|
+| `aiGroup` | one or many | **UTC** | `2026-08-24 05:58:50` |
+| `campaign` / `adGroup` / `target` / `placement` | **one** | **Store-local time** | `2026-08-24 00:01:06` (LA time) |
+| `campaign` / `adGroup` / `target` / `placement` | **many** | **UTC** | `2026-08-24 07:01:06` (UTC) |
 
-**Do not assume or assert a specific answer** (e.g. "it's UTC" or "it's store-local") — this needs explicit confirmation from the team building the new tool before this skill can responsibly resolve relative dates in multi-timezone scenarios. Until confirmed:
-- When precision matters (the user is asking about a boundary-sensitive window like "yesterday" for a specific non-UTC store), say you're not certain which timezone the boundary uses and that results near day boundaries should be treated as approximate.
-- Prefer giving the user a same-timezone reference point when possible (e.g. "results for 2026-07-19" rather than just "yesterday") so any boundary ambiguity is visible rather than silently baked into an unlabeled relative date.
+Verified against a single pause record on a US (`America/Los_Angeles`, UTC-7) profile: requesting one `profileId` returned `00:01:06`, requesting two returned `07:01:06` — exactly the 7-hour LA daylight-saving offset for the *same event*.
+
+**What this means in practice:**
+
+- **The same log entry can carry two different timestamps** depending on how many stores you queried. Adding a second store to a query silently shifts every ad-entity timestamp in the result by that store's UTC offset.
+- **Never compare or merge timestamps across a single-profile result and a multi-profile result.** They're in different clocks. If you already pulled single-store data and then widen to all stores, re-pull rather than stitching.
+- **Never present `createdDate` as "the store's time" without knowing which branch you're in.** In a multi-profile call, a `2026-08-24 07:01:06` on a US store is 00:01 local — reporting it as "7am" is wrong by a business day's worth of interpretation near midnight.
+- **Mixed `entities` mean mixed clocks in one response.** A query with `entities: ["campaign", "aiGroup"]` returns UTC for the aiGroup rows and (if single-profile) store-local for the campaign rows, in one time-sorted list. The sort itself is done on the raw string, so a mixed-clock result is not reliably chronological.
+- **Choose deliberately:**
+  - Want store-local times the user can match against their own console? Query **one profile at a time** and restrict `entities` to ad entities.
+  - Want a comparable cross-store timeline? Query **multiple profiles** (everything comes back UTC) or convert client-side using each row's `countryCode`, and label the output as UTC.
+- **When you show a timestamp, label the zone** ("2026-08-24 07:01 UTC" / "2026-08-24 00:01 store time"). An unlabeled timestamp from this tool is ambiguous by construction.
+
+Note this is a property of the log data itself; the MCP layer passes `createdDate` through unchanged and does no conversion.
+
+### Unconfirmed: which timezone the `dateStart`/`dateEnd` *filter* boundary uses
+
+Separate from the above: the platform spec still doesn't state which timezone `dateStart`/`dateEnd` are interpreted in when resolving a day boundary. Given the `createdDate` behavior just described, don't infer it — a request-level boundary in one zone and a returned value in another are entirely possible.
+
+This matters most for boundary-sensitive windows ("yesterday") on non-UTC stores in multi-country queries: you can be off by up to a full day at the edges.
+
+- When precision matters, say you're not certain which zone the boundary uses and treat results near day boundaries as approximate.
+- Prefer an explicit reference point ("results for 2026-07-19") over a bare relative date ("yesterday"), so any boundary ambiguity is visible rather than baked into an unlabeled range.
 
 ## Currency Rules
 
@@ -191,7 +254,9 @@ Amount fields carry a `currency` indicator, but the exact mechanism differs by t
 
 ### get_operation_log
 
-Amount-bearing fields (e.g. `previousValue`/`newValue` for a `dailyBudget` change) are always **local currency** — there is no cross-profile USD conversion for logs. Each row carries a `currencyCode` field (e.g. `"USD"`/`"JPY"`) mapped from that row's `countryCode`. There is no outer `currency` field for this tool.
+Amount-bearing fields (e.g. `previousValue`/`newValue` for a `dailyBudget` change) are always **local currency** — there is no cross-profile USD conversion for logs. Each row carries a `currencyCode` field (e.g. `"USD"`/`"JPY"`) mapped from that row's `countryCode`.
+
+This tool *may* also emit an outer `currency`, inferred from the rows: if every row shares one currency you get that code, if the result mixes currencies you get the literal string **`"mixed"`**, and if no row carries a currency the field is absent. **`"mixed"` is not a currency** — never render an amount as "123 mixed" or sum across rows when you see it; fall back to each row's own `currencyCode` and either report per-store or state that amounts aren't directly comparable.
 
 ## Ratio Metric Display Rule
 
@@ -230,15 +295,24 @@ When a call spans **more than one** `profileId`, make sure the response can actu
 ```
 User intent:
 ├── Has a time range + wants metric data (spend/sales/ACOS/clicks/...)
-│   └── → get_ads_perf
+│   ├── by hour / "which hours convert" / intraday pattern
+│   │   └── → get_ads_perf (timeGranularity=hourly, campaign only, ≤7 days)
+│   ├── keyword × placement breakdown
+│   │   └── → get_ads_perf (factEntity=keywordPlacement, hourly by nature, ≤7 days)
+│   └── → get_ads_perf (daily, default)
 ├── Asking about config/list/status (no metrics, no date range)
 │   ├── "what campaigns exist" → get_entity_metadata (entity=campaign)
 │   ├── "AI managed group config" → get_entity_metadata (entity=aiGroup)
+│   ├── "the managed group's schedule / flights / seasonal plan"
+│   │   └── → get_entity_metadata (entity=aiGroup_schedule; one profileId, filters.aiGroupId only)
+│   ├── "this group runs on a rule — show me the rule's actual conditions/actions"
+│   │   └── → get_entity_metadata (entity=aiGroup) and read aiAutomation.{ruleType}
+│   │       (rule-mode config is readable; it is NOT writable through MCP)
 │   ├── "product info / ASIN" → get_entity_metadata (entity=asin)
 │   ├── "portfolio list" → get_entity_metadata (entity=portfolio)
 │   └── "which automation rules are enabled on this campaign" → get_entity_metadata (entity=automationRule)
 ├── "Who did what" / "what did AI change" / "change history"
-│   └── → get_operation_log
+│   └── → get_operation_log  (mind the createdDate timezone rules)
 └── Needs both metrics AND config
     └── get_ads_perf first for the data → get_entity_metadata to enrich with names/config
 ```
@@ -320,3 +394,9 @@ See the dedicated Period-over-Period and Top Movers example for the full procedu
 - **ACOS/CTR/CVR/targetAcos/UnitSessionPercentage are confirmed pre-scaled ×100** (e.g. `17.61` = 17.61%) — don't re-scale, but **do append `%`** when presenting to the user (`"17.61%"`); filters stay on the raw ×100 scale (`{"ACOS": {"<": 20}}`). **TACOS/`*Rate` fields are unconfirmed** — relay the raw value as-is with no `%` and no assumed scale until backend confirms. See Ratio Metric Display Rule above.
 - **Metric/field names are case-sensitive** — `Spend` ✓, `spend` ✗, `SPEND` ✗.
 - **Field-naming convention differs by tool** — see the "Field Naming Rules" section in each tool's own SKILL.md before constructing `select`/`filters`. Do not assume the two tools share one convention.
+- **One unauthorized `profileId` fails the whole call** — no silent dropping any more. Always take IDs verbatim from `get_user_authorized_context`.
+- **`pageSize` out of range is an error on `get_ads_perf`/`get_entity_metadata`** (clamped only on `get_operation_log`) — floor any computed `pageSize` at 1 and cap it at the tool's max yourself.
+- **Hourly/AMS queries cap at 7 days, not 90** — applies to `timeGranularity: hourly` (campaign only) and `factEntity: keywordPlacement` (SP only). `hourly` on any other entity errors rather than falling back to daily, and `keywordPlacement` requests use bare field names while its responses come back `_`-suffixed.
+- **`get_operation_log`'s `createdDate` timezone shifts with the request** (`aiGroup` = UTC; ad entities = store-local for one profile, UTC for many) — always label the zone, never merge single- and multi-profile results. See the timezone section above.
+- **`currency: "mixed"` on `get_operation_log` is not a currency** — read each row's `currencyCode` instead of formatting or summing.
+- **`get_entity_metadata`'s `aiGroup` response is a projection of what's *currently effective*** — fields belonging to a disabled switch, and rules running in AI mode, are omitted rather than returned with stale values. A missing field means "not in effect", not "not configured" and not "write failed". See that skill for the full rules.

@@ -23,9 +23,14 @@ Flat operations use the type selectors and companion values inside `batchParams`
   `1` = Rule/RBA. Use the exact mapping in `field-reference.md`.
 - Editing may set the mode field to `0` to switch **Rule/RBA -> AI**, but must not set
   it to `1` to switch **AI -> Rule/RBA**.
-- Metadata may expose the on/off and AI/RBA mode indicators, but RBA conditions,
-  schedules, and actions cannot be read or edited through this MCP version. Do not
-  infer, preserve, reconstruct, or modify an RBA template.
+- **RBA configuration is readable but not writable.** For a rule in Rule mode,
+  `get_entity_metadata(entity='aiGroup')` returns its real conditions, actions, condition
+  items, time periods and hour matrices under `aiAutomation.{ruleType}` - you may read and
+  explain that setup. You must **not** attempt to write, preserve, reconstruct, or migrate
+  it: no MCP tool writes rule conditions/actions. For an RBA config change, point the user to
+  the platform.
+- Schedules **are** writable, but through a different tool
+  (`save_sp_sb_ai_group_schedule`) - not via these fields. See the main SKILL.md.
 
 ## Editable fields
 
@@ -63,8 +68,9 @@ Multi-group edit uses the **operation-based batch protocol** - inside `request`:
 three-state result handling. See [`batch.md`](batch.md).
 
 **SP and SB can be batched together** for operations both support; **SP-only operations**
-(`structOptimization`, `targetPausedAdd`) must **exclude SB** ids. **SD** always uses the
-other tool (`edit_sd_ai_managed_group`) - never in the same call.
+(`structOptimization`) must **exclude SB** ids. (`targetPausedAdd` is not usable here -
+it's disabled in SP/SB batch; see the word-list note in [`batch.md`](batch.md).) **SD**
+always uses the other tool (`edit_sd_ai_managed_group`) - never in the same call.
 
 ## Example - retarget one SP group to volume with an aggressive personality
 

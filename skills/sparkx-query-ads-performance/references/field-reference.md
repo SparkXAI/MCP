@@ -70,6 +70,44 @@
 | `targetId_` | Related target ID | — |
 | `adGroupId_` / `campaignId_` | Parent IDs | — |
 
+### KeywordPlacement (asymmetric naming: bare in request, `_`-suffixed in response)
+
+Only valid when `factEntity` is `keywordPlacement`. Sourced from Amazon Marketing Stream (AMS), **SP only, hourly by nature, max 7-day span**. Do not pass `timeGranularity` with this entity (neither `hourly` nor `daily`), and do not use these bare names under any other `factEntity`.
+
+| Write this in `select`/`filters`/`orderBy` | Read this key in the response | Description | Enum |
+|---|---|---|---|
+| `keywordId` | `keywordId_` | Keyword ID | — |
+| `keywordText` | `keywordText_` | Keyword text | — |
+| `matchType` | `matchType_` | Match type | `EXACT` / `PHRASE` / `BROAD` (upper case here, unlike `target`'s lower-case `exact`/`phrase`/`broad`) |
+| `placement` | `placement` | Placement | Raw stream value, matched **verbatim** — see the full value list & filter caveat below. **Not** the `topOfSearch`/`productPage`/`restOfSearch` codes used by the `placement` entity. |
+| `campaignId` | `campaignId_` | Campaign ID | — |
+| `adGroupId` | `adGroupId_` | Ad group ID | — |
+| — | `hour` | Hour of day, `0`-`23`, comes back automatically with hourly granularity | — |
+| — | `date` | Date | — |
+| — | `profileId_` | Store ID | — |
+
+Use the left column when building a call and the right column when parsing rows. Don't feed a response key back into a request: a `keywordPlacement.<field>` reference is passed through literally, so `keywordPlacement.keywordText_` happens to resolve while `keywordPlacement.placement_` fails (the column is `placement`, no underscore). The bare form avoids the trap.
+
+**`placement` filter — use the raw stream value (exact match).** The backend does **no** code→label mapping for `keywordPlacement`: `placement` is matched verbatim against the raw AMS value, so a short code like `topSearch` (or an `SP-…`-prefixed form) silently returns **zero rows**, not an error. Filter with one of these exact strings:
+
+- **Legacy names** (SP daily naming, still present in the AMS stream): `Top of Search on-Amazon`, `Detail Page on-Amazon`, `Other on-Amazon`, `Off Amazon`
+- **AMS newer names**: `Top of Search` (no `on-Amazon` suffix), `Product Detail Page` (= `Detail Page on-Amazon`), `Rest of Search` (search part of `Other on-Amazon`), `Rest of Browse`, `Amazon Onsite`, `Offsite` (= `Off Amazon`), `Amazon O&O`
+
+Legacy and AMS-new forms can coexist in the stream and matching is exact/case-sensitive — if a `placement` filter returns empty, suspect a value-form mismatch: prefer reading `placement` from the returned rows instead of filtering on it, or query the candidate forms explicitly.
+
+**`campaignType` filters are dropped on this entity** (SP-only source, so nothing is pushed down): `sponsoredProducts` changes nothing, `sponsoredBrands`/`sponsoredDisplay` yields an empty result set that means "wrong entity", not "no data".
+
+**Restricted metric set**, with two distinct failure modes:
+
+| Metrics | Behaviour |
+|---|---|
+| `Impressions`, `Clicks`, `Spend`, `Sales`, `Conversions`, `Units`, `SalesSameSKU`, `ConversionsSameSKU`, `UnitsSameSKU`, `SalesOtherSKU`, `ConversionsOtherSKU`, `UnitsOtherSKU`, `CTR`, `CVR`, `CPC`, `CPA`, `ACOS`, `ROAS` | Available |
+| `AISpend`, `AISales` | Return `0` — placeholder, not a real zero |
+| `AIACOS`, `AIROAS` | Return `null` — placeholder |
+| NTB family, DPV / video / viewability / vCPM / impression-share, ASIN business metrics | **Query fails** (no such column in the stream table) |
+
+Never report AI performance from this entity or divide by those values; use `factEntity: campaign`. Never include a metric from the last row — it breaks the whole call rather than returning blanks.
+
 ### Placement
 
 | Field | Description | Enum |
@@ -146,7 +184,7 @@
 | `aiGroup.aiPersonality_` | AI aggressiveness | `1` (very conservative) … `5` (very aggressive) |
 | `aiGroup.aiGroupStatusOnDate_` / `aiGroup.aiGroupLastStatusOnDate_` / `aiGroup.aiGroupLastStatusOffDate_` | Lifecycle dates | — |
 | `aiGroup.aiCreator_` / `aiGroup.aiGroupCreateTime_` | Creator / create time | — |
-| `aiGroup.budgetDynamicStatus_`, `aiGroup.competitorStatus_`, `aiGroup.negativeTargetStatus_`, `aiGroup.targetPausedAddStatus_`, `aiGroup.bidOptimizationStatus_`, `aiGroup.bidDaypartStatus_`, `aiGroup.bidPerformanceStatus_`, `aiGroup.bidAdPlaceStatus_`, `aiGroup.structOptimizationStatus_`, `aiGroup.structPauseProductStatus_`, `aiGroup.structPauseCampaignStatus_`, `aiGroup.budgetDaypartStatus_`, `aiGroup.budgetRedistributeStatus_` | Action Space feature switches (`0`/`1`) | — |
+| `aiGroup.budgetDynamicStatus_`, `aiGroup.competitorStatus_`, `aiGroup.negativeTargetStatus_`, `aiGroup.targetPausedAddStatus_`, `aiGroup.targetHarvestStatus_`, `aiGroup.bidDaypartStatus_`, `aiGroup.bidPerformanceStatus_`, `aiGroup.bidAdPlaceStatus_`, `aiGroup.bidAmazonBusinessStatus_`, `aiGroup.btbRangeStatus_`, `aiGroup.structPauseProductStatus_`, `aiGroup.structPauseCampaignStatus_`, `aiGroup.budgetDaypartStatus_`, `aiGroup.budgetRedistributeStatus_` | Action Space feature switches (`0`/`1`; `targetPausedAddStatus_` and `targetHarvestStatus_` are `0`/`1`/`2` — see enum-i18n) | — |
 
 ### AutomationRule
 
@@ -179,19 +217,23 @@
 
 **Only request metrics valid for the chosen `factEntity`.** Requesting an unsupported combination (e.g. `NTBOrders` on `placement`, or `TACOS` on anything but `asin`) is a common source of invalid-call errors.
 
-| Metric category | campaign | adGroup | target | searchTerm | placement | productAd | asin |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| Basic (Impressions/Clicks/Spend/AISpend) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Sales/Conversion (Sales/Conversions/Units + Same/Other SKU) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Derived (CTR/CVR/CPC/CPA/ACOS/ROAS) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| NTB (NTBOrders/NTBSales/NTBUnits etc) | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ✗ |
-| DPV (DPV/DPVClick/DPVR) | ✓ | ✓ | ✓ | ✗ | ✗ | ✓ | ✗ |
-| Attribution (OrdersClick/SalesvCPM etc) | ✓ | ✓ | ✓ | ✗ | ✗ | ✓ | ✗ |
-| Viewability (ViewableImpressions/vCPM) | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
-| Video (VideoCompleteViews/VTR etc) | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
-| Impression share (TopOfSearchIS) | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
-| AI (AISales/AIACOS/AIROAS) | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
-| ASIN business (TotalSalesAmount/TACOS/Sessions etc) | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ |
+| Metric category | campaign | adGroup | target | searchTerm | placement | productAd | asin | keywordPlacement |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| Basic (Impressions/Clicks/Spend) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Sales/Conversion (Sales/Conversions/Units + Same/Other SKU) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Derived (CTR/CVR/CPC/CPA/ACOS/ROAS) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| NTB (NTBOrders/NTBSales/NTBUnits etc) | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ✗ | ✗ |
+| DPV (DPV/DPVClick/DPVR) | ✓ | ✓ | ✓ | ✗ | ✗ | ✓ | ✗ | ✗ |
+| Attribution (OrdersClick/SalesvCPM etc) | ✓ | ✓ | ✓ | ✗ | ✗ | ✓ | ✗ | ✗ |
+| Viewability (ViewableImpressions/vCPM) | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| Video (VideoCompleteViews/VTR etc) | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| Impression share (TopOfSearchIS) | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| AI (AISpend/AISales/AIACOS/AIROAS) | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | **placeholder only** |
+| ASIN business (TotalSalesAmount/TACOS/Sessions etc) | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ |
+
+**`keywordPlacement` caveats**: it's the only hourly-native entity (AMS-sourced, **SP only**, ≤7-day span), and its metric set is the narrowest of any entity — base + Same/Other-SKU + the six derived ratios, nothing else. AI metrics are accepted but meaningless there (`AISpend`/`AISales` come back `0`, `AIACOS`/`AIROAS` come back `null`): don't report or divide by them. See the KeywordPlacement section above for the full available / unavailable split.
+
+**Hourly campaign queries** (`factEntity: campaign` + `timeGranularity: hourly`) cover **SP + SB + SD** over a ≤7-day span, but support only a **subset** of the daily campaign metric set: basic traffic, sales/conversion (incl. Same-SKU / Other-SKU), the derived ratios (CTR/CVR/CPC/ACOS/ROAS etc.), NTB, `ViewableImpressions`, and click/view attribution. **Not supported**: DPV, video, and impression-share (e.g. top-of-search IS) — requesting these returns an unknown-column `query_error`, not a value. AI metrics are placeholders (`AISpend`/`AISales` return `0`, `AIACOS`/`AIROAS` return `null`) — real AI values are daily-only.
 
 ## Metrics Reference
 

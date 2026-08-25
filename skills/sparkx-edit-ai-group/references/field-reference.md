@@ -30,7 +30,7 @@ Flat fields (no nested objects):
 | Field | Values / type |
 |---|---|
 | `status` | **create: `0`=off, `1`=on only** (`2`=cancelled is a lifecycle state, **not** a valid create input) |
-| `optimizeType` | `1`=drive growth, `2`=maintain stability |
+| `optimizeType` | `1`=drive growth, `2`=maintain stability, **`3`=boost volume** (SD edit accepts 1-3; anything else is rejected) |
 | `acos` | number, ACOS on the x100 scale (see create-sd.md) |
 | `budget` / `budgetChange` | number / boolean (budget applies only when `budgetChange=true`) |
 | `budgetDynamicStatus` | `0`/`1` |
@@ -63,38 +63,60 @@ Struct (**SP only**): `structPauseProductStatus`, `structPauseCampaignStatus`.
 Budget: **`budgetDaypartActionStatus`**, **`budgetDynamicActionStatus`**,
 **`budgetRedistributeActionStatus`**, `budgetNum`, `budgetNumType`.
 
-Target: `targetHarvestActionStatus`, `targetHarvestBlackListStatus`,
+Target (**read-only via MCP - not settable at edit; configure in the platform UI**):
+`targetHarvestActionStatus`, `targetHarvestBlackListStatus`,
 `targetHarvestBlackList` (IDs), `targetHarvestListType`, `targetHarvestMatchType`,
 `negativeTargetActionStatus`, `negativeTargetBlackListStatus`,
 `negativeTargetBlackList` (IDs), `negativeTargetListType`, `negativeTargetMatchType`,
-`targetPausedAddStatus` (`0`=off, `1`=on, `2`=on with supplement).
+`targetPausedAddStatus` (`0`=off, `1`=on, `2`=on with supplement). These read back
+from `get_entity_metadata` but the SP/SB write tool does not apply them - don't send
+them at edit.
 
 Word-list fields may appear in some schemas, including `brandedStatus`, `brandedList`,
 `competitorStatus`, `competitorList`, `negativeTargetBlackListStatus`, and
 `targetHarvestBlackListStatus`. They are **currently unsupported**. Do not send any
 word-list status, list ID, match-type, or list-type field.
 
-### `aiAutomation` (nested, AI/Rule mode fields) - EXACT names
+### `aiAutomation` (flattened mode fields) - EXACT names
 
 `aiActionSettings.xxxStatus` controls whether an action space is enabled. When it is
-enabled, the corresponding `aiAutomation` field selects the mode: `0` = AI, `1` =
-Rule/RBA. Edit may set a mode field to `0` to switch **RBA -> AI**. It must not set a
-mode field to `1` to switch **AI -> RBA**, and it cannot edit RBA conditions/actions.
+enabled, the corresponding `aiAutomation` field selects the mode.
 
-| `aiActionSettings` switch | `aiAutomation` mode field |
-|---|---|
-| `bidDaypartStatus` | `bidDaypartStatus` |
-| `bidPerformanceStatus` | `bidPerformanceRuleStatus` |
-| `budgetDaypartActionStatus` | `budgetDaypartRuleStatus` |
-| `budgetDynamicActionStatus` | `budgetPerformanceRuleStatus` |
-| `negativeTargetActionStatus` | `negativeTargetRuleStatus` |
-| `structPauseCampaignStatus` | `pauseCampaignRuleStatus` |
-| `bidAdPlaceStatus` | `placementAdjustmentRuleStatus` |
-| `targetHarvestActionStatus` | `targetHarvestRuleStatus` |
-| `targetPausedAddStatus` | `targetPauseSupplementRuleStatus` |
+**⚠️ The value reads backwards from intuition: `0` = AI mode (system decides), `1` = Rule
+mode (RBA).** `1` is **not** "enabled". Edit may set a field to `0` to switch **RBA -> AI**;
+it must never set `1` to switch **AI -> RBA**, and it cannot write RBA conditions/actions.
+
+`aiAutomation` is a **flat object** on the write side. Each field maps to one rule number:
+
+| `aiAutomation` field | Rule | Paired `aiActionSettings` switch |
+|---|---|---|
+| `bidDaypartStatus` | 2 - bid dayparting | `bidDaypartStatus` |
+| `targetHarvestRuleStatus` | 4 - target harvest (read-only, not settable at edit) | `targetHarvestActionStatus` |
+| `negativeTargetRuleStatus` | 5 - negative target (read-only, not settable at edit) | `negativeTargetActionStatus` |
+| `budgetDaypartRuleStatus` | 13 - budget dayparting | `budgetDaypartActionStatus` |
+| `budgetPerformanceRuleStatus` | 17 - budget by performance | `budgetDynamicActionStatus` |
+| `placementAdjustmentRuleStatus` | 19 - placement adjustment | `bidAdPlaceStatus` |
+| `pauseCampaignRuleStatus` | 20 - pause campaign | `structPauseCampaignStatus` |
+| `bidPerformanceRuleStatus` | 181 - bid by performance | `bidPerformanceStatus` |
+| `targetPauseSupplementRuleStatus` | 182 - target pause / supplement (read-only, not settable at edit) | `targetPausedAddStatus` |
+
+| Field | Type | Notes |
+|---|---|---|
+| `budgetDaypartExcuteDays` | string | Only meaningful with rule 13. Comma-separated: **`1`-`6` = Mon-Sat, `0` = Sunday**. Default `"1,2,3,4,5,6,0"`. Note the spelling - `Excute` |
 
 `budgetRedistributeActionStatus` and `bidAmazonBusinessStatus` have no Rule mode; only
 their `aiActionSettings` on/off switch applies.
+
+**Partial edits merge with current config**, so you can send just the mode field you're
+changing. But when you send `aiActionSettings`, mind the SB restrictions in
+[`action-space-matrix.md`](action-space-matrix.md) - an SP-only field enabled on an SB group
+now fails the whole call.
+
+**On read**, `aiAutomation` is keyed by rule number (`"2"`, `"4"`, `"181"`, …), AI-mode rules
+are omitted entirely, and Rule-mode rules come back with their full condition/action
+configuration (readable, not writable). An empty `aiAutomation` is ambiguous by itself: read the
+paired `aiActionSettings` switches to distinguish off action spaces from enabled action spaces in
+AI mode.
 
 > Coupling rules (open a switch -> must also send its companion fields) are in
 > [`coupling-rules.md`](coupling-rules.md).

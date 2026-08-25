@@ -8,7 +8,8 @@ description: >-
   with attribution, and next-month structural recommendations. Use when the user says "出个月报",
   "月度复盘", "这个月表现如何", "monthly report". Not for weekly recaps (use sparkx-weekly-ads-report) or
   quarterly/QBR-level strategic review (use quarterly-ads-report, not yet built).
-version: 1.0.0
+metadata:
+  version: 1.0.1
 ---
 
 # Monthly Ads Report
@@ -392,3 +393,5 @@ Follows the shared error envelope used by all three underlying tools (`isError`/
 - **v0.5.4** (2026-07-28) · Corrected Step 2h's new-product identification against the authoritative tool spec: `asinOpenDate` is **not** a filterable `get_entity_metadata` field, and v0.3.0/v0.4.0 wrongly assumed it was filterable in `YYYYMMDD` format. Rewrote to pull asin metadata (no `asinOpenDate` filter) with full pagination, then filter to the month window **client-side** on the returned `asinOpenDate`, which is a datetime-with-timezone string (e.g. `"2026-06-01 00:00:00 PST"`) — not `YYYYMMDD` — so it must be parsed with PST-timezone awareness to avoid month-boundary misclassification (`YYYYMMDD` is `campaignStartDate`'s format, not this field's). Also renamed the cross-reference "weekly-aggregation example" → "aggregation-over-time example" to match the base skill's actual `example-aggregation-over-time.md` (references only).
 - **v0.5.5** (2026-07-28) · Synced the AI-managed-section detection call with the fix `sparkx-weekly-ads-report` v0.9.3 got: the `get_entity_metadata` (`entity: aiGroup`) check now instructs adding `filters: {"aiStatus": 1}` or fully paginating — with a default page size of 100, an account whose only running AI group sat past page 1 would previously have been misjudged as "no AI management" and the whole callout wrongly skipped.
 - **v0.5.6** (2026-07-28) · Added an explicit dependency declaration to the Scope section (needs `sparkx-query-ads-performance`/`sparkx-query-entity-metadata`/`sparkx-query-operation-log` installed as sibling skills for the `../query-.../…` cross-references to resolve). Links unchanged — they're correct for the standard flat `.claude/skills/<name>/` layout; the note just makes the install dependency explicit.
+- **v1.0.0** (2026-08-18) - First stable release; moved from `skills/optional/` to the top-level `skills/` folder alongside the required skills.
+- **v1.0.1** (2026-08-25) - Same platform-behavior sync as the weekly report: all-or-nothing `profileIds`, strict `pageSize`/`page` validation, `language` default `en`, and the entity/profile-count-dependent `createdDate` timezone on `get_operation_log`.

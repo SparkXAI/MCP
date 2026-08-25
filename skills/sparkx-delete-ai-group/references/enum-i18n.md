@@ -31,7 +31,7 @@ the three goals below. `4` is a legacy value not shown in the UI; don't offer it
 
 ## optimizeType (SD) - 优化类型
 
-SD only has two (no 冲量).
+SD `optimizeType` accepts `1`/`2`.
 
 | code | 中文 | English | 常见说法 |
 |---|---|---|---|

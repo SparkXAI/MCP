@@ -11,9 +11,10 @@
 | `productAd` | AdsListMetadataProvider | Product ad list |
 | `portfolio` | AdsListMetadataProvider | Portfolio list |
 | `placement` | AdsListMetadataProvider | Placement list |
-| `aiGroup` | AiGroupMetadataProvider | AI managed group list |
+| `aiGroup` | AiGroupMetadataProvider | AI managed group list. Response is a **projection of the currently effective config** — see SKILL.md |
+| `aiGroup_schedule` | AiGroupScheduleMetadataProvider | Schedules of **one** managed group — **requires exactly one `profileId` and `filters.aiGroupId` only**, ignores pagination/sorting |
 | `asin` | AsinMetadataProvider | ASIN product info (child ASIN + parent ASIN + product line, nested) |
-| `automationRule` | AutomationRuleMetadataProvider | Which automation rules are enabled on given campaign(s) — **requires `amazonCampaignId` in filters** |
+| `automationRule` | AutomationRuleMetadataProvider | Enabled rule-type codes/names for given campaign(s) — **requires `amazonCampaignId` in filters; does not return template configuration** |
 
 ## Fields by Entity
 
@@ -164,17 +165,58 @@ Sourced from a separate backend (`td-api getSaAiGroupList`), aggregated from the
   rollups** here. On the write side, editing the group total **proportionally rescales
   every enabled campaign's daily budget** to the new total (see the create/edit skills) —
   don't treat them as independent editable fields.
-- **`aiActionSettings`** (object): contains action-space on/off indicators. A relevant
+- **`aiActionSettings`** (object): action-space switches and their parameters. A relevant
   `xxxStatus` value of `0` means off and `1` means on.
-- **`aiAutomation`** (object): contains the corresponding mode indicators for action
-  spaces that support both modes. A mode value of `0` means AI and `1` means Rule/RBA.
-  Use the write-skill mapping to pair an action-space switch with its mode field; do
-  not decide the mode from `aiActionSettings` alone.
-- The readable contract stops at the on/off and AI/RBA mode indicators. RBA condition,
-  schedule, and action/template details are not supported as a stable readable schema.
-  Do not infer or reconstruct those details from partial object contents.
+- **`aiAutomation`** (object): keyed by rule type (`2`, `4`, `5`, `13`, `17`, `19`, `20`,
+  `181`, `182`). Each entry's `status` is the mode: `0` = AI, `1` = Rule/RBA. Pair an
+  action-space switch with its mode entry rather than deciding the mode from
+  `aiActionSettings` alone. Conversely, do not decide from `aiAutomation` alone either:
+  an empty object can mean the paired action spaces are off, that enabled action spaces are
+  AI-driven, or both. Read the paired switch first.
+- **⚠️ Both objects are returned as a projection of what's *currently effective*, not the
+  raw stored record.** Fields belonging to a switch that is off are omitted; rules running
+  in AI mode are omitted from `aiAutomation` entirely; rules in Rule mode drop their
+  AI-only parameters; and the whole set is first trimmed to what the `campaignType`
+  supports. **An absent field means "not in effect", not "unset" and not "write failed".**
+  Full rules and the per-ad-type trim table are in SKILL.md — read them before reporting a
+  config or verifying a write.
+- **RBA rule configuration is readable.** For a rule in Rule mode, `aiAutomation.{ruleType}`
+  carries its real conditions, actions, condition items, time periods, and (for dayparting)
+  the hour matrix. Confirmed leaves carry a `...Text` companion; unconfirmed leaves are
+  passed through raw with no Text — relay those verbatim rather than labelling them. The
+  same raw value can mean different things under different rule types, so never carry a
+  label across rules. Reading is supported; **writing RBA config is not available through
+  any MCP tool**.
 
-**Filterable fields**:
+For the paired-switch table, standalone-vs-managed capability boundary, condition priority,
+and rule-specific business semantics, read [`automation-rule-reading.md`](automation-rule-reading.md)
+before explaining the configuration to a user.
+
+**Automation rule <-> action-space mapping** (when a managed-group action space is in
+Rule/RBA mode, its readable config appears under `aiAutomation.{ruleType}`):
+
+| action space | ruleType | automation rule template | Notes |
+|---|---:|---|---|
+| `bidDaypart` / 分时调价 | `2` | Bid dayparting / 分时调价 | Standalone automation supports SP/SB/SD; managed-group action-space support follows the action-space matrix. |
+| `targetHarvest` / 定向收割 | `4` | Harvest Keywords / 添加搜索词 | `targetHarvestStatus` special source-exact-negative modes are represented on the action-space switch, not by a different ruleType. |
+| `negativeTarget` / 添加否定定向 | `5` | Add Negative Keywords / 添加否定词 | SP/SB standalone automation; SP/SB managed-group word-list settings are read-only through MCP. |
+| `budgetDaypart` / 分时预算 | `13` | Budget dayparting / 分时预算 | SP/SB standalone automation. |
+| `budgetPerformance` / 按表现调预算 | `17` | Budget rules / 预算规则 | Help Center calls this Budget Rules; action-space docs also call it budget by performance / boost budget. |
+| `bidAdPlace` / 广告位调价 | `19` | Placement Rules / 广告位规则 | Help Center says standalone Placement Rules support SP/SB; managed-group action-space use may still be SP-only per the action-space matrix and PRD template filtering. |
+| `structPauseCampaign` / 暂停广告活动、广告组 | `20` | Campaign activation/pausing (New) / 开启/暂停广告活动（新版） | Replaces the old pause/enable campaign rules for new setup. |
+| `bidPerformance` / 按表现调价 | `181` | Bid by performance / 按表现调价 | Managed-group action-space RBA rule type. |
+| `targetPausedAdd` / 定向暂停/补充 | `182` | Target pause/supplement / 定向暂停/补充 | Managed-group action-space RBA rule type. |
+
+`budgetRedistribute` (预算重新分配), `bidAmazonBusiness` (B2B 调价), and
+`structPauseProduct` (暂停商品) are action spaces without an `aiAutomation` ruleType in
+the current MCP projection.
+
+**Filterable fields — this is a closed whitelist.** Unlike `campaign` (where every returned
+field is filterable), `aiGroup` accepts only the fields below. Anything else fails with
+`Invalid aiGroup filter 'x': is not supported for aiGroup`, and an out-of-domain enum value
+fails too (e.g. `campaignType` must be one of `sponsoredProducts` / `sponsoredBrands` /
+`sponsoredDisplay`; `targetType` must be `1`/`2`/`3`). Don't assume a field is filterable
+just because it appears in the response.
 
 | Field | Type | Format | Example |
 |---|---|---|---|
@@ -189,6 +231,40 @@ Sourced from a separate backend (`td-api getSaAiGroupList`), aggregated from the
 **`targetAcos` uses the same confirmed ×100/percentage scale as performance `ACOS` in `get_ads_perf`** (documented as "Target ACOS (percentage)") — a value of `35` means a 35% target. Don't re-scale the number, but **append `%`** when presenting it: "target ACOS is 35%".
 
 **orderBy supported fields**: `aiGroupName`, `createTime` (default), `createBy`
+
+### aiGroup_schedule (managed-group schedules)
+
+Schedules ("flights") of **one** managed group. Special calling contract — see SKILL.md and [`example-ai-group-schedule.md`](example-ai-group-schedule.md).
+
+**Request contract** (all enforced, all fail-closed):
+
+| Requirement | Error when violated |
+|---|---|
+| Exactly one authorized `profileId` | `aiGroup_schedule query requires exactly one authorized profileId` |
+| `filters` contains `aiGroupId` | `aiGroup_schedule query requires filters.aiGroupId` |
+| `filters` contains **nothing else** | `aiGroup_schedule query only supports filters.aiGroupId` |
+| `aiGroupId` is a single positive integer (`29123`, `[29123]`, or `{"in": [29123]}`) | invalid-filter error |
+
+Pagination and `orderBy` are ignored; all schedules for the group come back in one response, and the top-level `page`/`pageSize`/`hasNextPage` fields are omitted.
+
+**Return fields** (per schedule row):
+
+| Field | Type | Notes |
+|---|---|---|
+| `id` | long | Schedule ID (used as the update/delete key by the write tool) |
+| `isActive` | boolean | Whether the schedule is active |
+| `timeType` | int | `1` = fixed date window, `2` = weekly repeat |
+| `startDate` / `endDate` | string | `timeType=1` only |
+| `weekDays` | array[int] | `timeType=2` only. `1`=Monday … `7`=Sunday |
+| `optimizeType` | int | `1`=Drive Growth, `2`=Maintain Stable Orders, `3`=Event Boost, `4`=Drive Growth · Budget-utilization priority. **`timeType=2`: inherited from the parent group, read it from the group row instead** |
+| `acos` | number | Target ACOS. Same inheritance note as `optimizeType` |
+| `aiPersonality` | int | 1–5. Same inheritance note as `optimizeType` |
+| `aiActionSettings` | object | Per-schedule action-space settings, same shape and same effective-config projection as on the group |
+| `aiAutomation` | object | Per-schedule automation rules, keyed by rule type, same projection rules |
+
+**Reporting rule**: for a `timeType=2` (weekly) schedule, do **not** report `optimizeType`/`acos`/`aiPersonality` from the schedule row — they're inherited. Read them from the parent group (`entity: aiGroup`) and say so.
+
+**⚠️ `weekDays` read vs write encodings differ.** The values above (`1`=Monday … `7`=Sunday) are what the **read** side (`get_entity_metadata`) returns. The **write** tool `save_sp_sb_ai_group_schedule` expects a **different** encoding — `0`=Sunday … `6`=Saturday. Do **not** echo a `weekDays` value read here straight into a save-schedule call; translate between the two encodings first.
 
 ### asin (ASIN product info)
 
@@ -243,6 +319,15 @@ This is the one entity where multi-profile does NOT mean USD — check each row'
 
 Queries which automation rule types are enabled for given campaign(s). **Must pass `amazonCampaignId` in filters — this is not optional for this entity.**
 
+This entity is deliberately narrow: it returns an enabled-type summary, not the account's
+automation-template library. It does not expose template ID/name, applicable objects,
+conditions, actions, frequency, date windows, or campaign-template associations. To read a
+managed group's embedded Rule-mode configuration, query `entity: aiGroup` and inspect
+`aiAutomation`; that still does not expose standalone template details.
+
+Product inventory rules are SKU/product-scoped and have no rule type in this campaign lookup.
+Their absence from `enabledRuleTypes` does not prove that no product inventory rule exists.
+
 **Return fields**: `amazonCampaignId` (long), `enabledRuleTypes` (array[int] — enabled rule type codes), `enabledRuleNames` (array[string] — human-readable rule names, already localized; there is no separate `Text` companion field for this one since the values are already human-readable)
 
 **ruleType enum** (meaning of the ints in `enabledRuleTypes`):
@@ -250,6 +335,7 @@ Queries which automation rule types are enabled for given campaign(s). **Must pa
 | ruleType | Name | Description |
 |---|---|---|
 | 2 | Dayparting | Bid dayparting |
+| 3 | Budget rules (legacy) | Deprecated legacy budget rule; may still appear on historical campaigns |
 | 4 | Harvest Keywords | Auto-harvest search terms into keywords |
 | 5 | Harvest Negative Targeting | Auto-add negative targets |
 | 6 | Pause Campaign | Auto-pause campaign |
@@ -261,6 +347,8 @@ Queries which automation rule types are enabled for given campaign(s). **Must pa
 | 18 | Target (new) | Targeting rule v1 |
 | 19 | Placement Rule | Placement adjustment rule |
 | 20 | Campaign V2 (pause/enable) | Combined pause/enable rule V2 |
+| 181 | Bid Performance | Managed-group bid-by-performance action-space rule |
+| 182 | Target Pause/Supplement | Managed-group target pause/supplement action-space rule |
 
 **Filter**: only `amazonCampaignId` (required)
 ```json

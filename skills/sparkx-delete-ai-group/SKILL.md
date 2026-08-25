@@ -8,7 +8,7 @@ description: >-
   group (use sparkx-edit-ai-group), editing config (use sparkx-edit-ai-group), or creating a group (use
   sparkx-create-ai-group).
 metadata:
-  version: 1.0.2
+  version: 1.0.3
 ---
 
 # Delete AI Managed Group
@@ -18,6 +18,18 @@ Delete (archive) a managed group via `delete_ai_managed_group`. This is
 care than any read or edit. Read
 [`references/platform-notes.md`](references/platform-notes.md) once first (auth,
 response envelope, generic errors, the separate delete scope).
+
+**Scope**: `amazon_sa_managed_group_delete:write` - separate from the create/edit scope
+(`amazon_sa_managed_group:write`). A token that can create and edit groups may still be
+unable to delete one; if the call fails on permissions, name this scope to the user rather
+than retrying.
+
+**Routing is fail-fast.** The tool reads the group's `campaignType` to pick its delete path
+(SP/SB and SD go to different backends). If that type can't be determined or isn't one of
+`sponsoredProducts` / `sponsoredBrands` / `sponsoredDisplay`, the call is **rejected** with a
+fail-fast error and **nothing is archived**. Treat that error as "the group
+couldn't be identified", not as "the group was partially deleted": re-read the group with
+`get_entity_metadata(entity='aiGroup')` and confirm its state before doing anything else.
 
 ## What "delete" does - and the campaign disposal choice
 
@@ -137,7 +149,9 @@ Success: `{ "isError": false, "data": { "status": "success", ... } }` -> then ve
 with a read.
 
 Errors come back as `{ "isError": true, "data": { "error": "...", "recoveryHint":
-"..." } }` - relay `recoveryHint` when present. It isn't always populated (some come
+"..." } }` - relay `recoveryHint` when present. (Some failures instead use the top-level
+`errorType`/`error` shape documented in `references/platform-notes.md`; check `isError`
+first, then look for either form.) It isn't always populated (some come
 back generic, e.g. `"Resource Not Found"`, `"aigroup AI is running"`), so map them:
 
 | Symptom | Likely cause | What to do |
@@ -156,4 +170,5 @@ to the user that a group "exists but you lack access" (or the reverse) based on 
 string.
 
 ## Reference files
+- [`references/enum-i18n.md`](references/enum-i18n.md) - managed-group campaign type, status, goal, and action-setting labels used during preflight and confirmation
 - [`references/platform-notes.md`](references/platform-notes.md) - shared write-tool behavior (auth, separate delete scope, response envelope, generic errors)

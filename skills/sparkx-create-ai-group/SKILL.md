@@ -10,7 +10,7 @@ description: >-
   for enabling or editing an existing group (use sparkx-edit-ai-group) or deleting one (use
   sparkx-delete-ai-group).
 metadata:
-  version: 1.0.3
+  version: 1.1.0
 ---
 
 # Create AI Managed Group
@@ -125,8 +125,12 @@ confirm the meaning first, then use the ad-type reference to pick the field.
      filters={"aiGroupName": {"like": "%<name>%"}}, userContext='...')`, then compare names
      **exactly** in the returned rows. If an exact match exists, ask for a different
      name rather than letting the create fail.
-   - **Name not blank.** Reject a pure-whitespace / trims-to-empty name yourself - the
-     UI blocks it, MCP doesn't.
+   - **Name not blank, and ≤ 200 characters.** Reject a pure-whitespace / trims-to-empty
+     name yourself - the UI blocks it, MCP doesn't. The UI also caps the name at **200
+     characters**; the API doesn't state a limit, so treat 200 as the safe ceiling and
+     shorten with the user's agreement rather than sending something longer. A duplicate
+     name comes back from the backend as `aiGroupName is exist` (code `124025`) - the
+     pre-flight check above is what keeps you from hitting it.
    - **Already-managed campaigns (checkable).** A campaign already in another managed
      group shows a non-empty `aiGroupId` in its metadata - flag those, let the user
      decide.
@@ -200,20 +204,77 @@ confirm the meaning first, then use the ad-type reference to pick the field.
      environments an `campaignId: {"in":[...]}` filter throws a backend type error.
      If a batched filter errors, fall back to per-id `campaignId = <id>` reads (or another
      confirmed-usable field). This applies to both the pre-create mapping and this check.
-   - Nested `aiActionSettings`/`aiAutomation` values may not be independently
-     readable; if you can't read one back, say "created, but this setting couldn't be
-     independently confirmed" rather than implying it's verified.
+   - `aiActionSettings` / `aiAutomation` read back as a projection of what's currently
+     effective, not as the raw write payload: disabled dependencies and AI-mode rules can
+     be omitted. Verify the paired action-space switch first, then interpret retained rule
+     config. If the projection cannot prove a requested setting, say "created, but this
+     setting couldn't be independently confirmed" rather than treating omission as a
+     failed write.
    - If operation-log read access is available, query `get_operation_log` and confirm
      the create is recorded against an identifiable token user. The server supplies
      `changedBy`; never send or fabricate it. If logs cannot be read, state that audit
      verification was not performed.
 
-The current write schemas do not expose managed-group scheduling fields. Do not invent
-`scheduleType` or schedule-date parameters; scheduling must be done in the platform.
+## Scheduling is a separate tool (not a create-time field)
 
-The current tools also cannot create a managed group from a platform template. Build
-the supported configuration explicitly from the user's requirements, or tell the user
-to use the platform when a template-based setup is required.
+There are still **no** `scheduleType` / `scheduleDate` / `scheduleStartDate` /
+`scheduleEndDate` fields on the create tools - don't invent them. But scheduling itself is
+now available: **`save_sp_sb_ai_group_schedule`** creates, updates, and deletes SP/SB group
+schedules, and `get_entity_metadata(entity='aiGroup_schedule')` reads them.
+
+So when a user says "create the group and have it run this promo window":
+
+1. Create the group first (this skill), capture the returned `aiGroupId`.
+2. Then call `save_sp_sb_ai_group_schedule` with that `aiGroupId` (see
+   `sparkx-edit-ai-group` for the parameter contract).
+
+Two things to state up front rather than discovering mid-flow: schedules are **SP/SB only**
+(there is no SD schedule tool), and a **weekly** schedule (`timeType=2`) inherits
+`optimizeType` / `acos` / `aiPersonality` from the group - passing those on a weekly
+schedule is rejected. A fixed-window schedule (`timeType=1`) carries its own values.
+
+## Creating from a template
+
+A managed group **can** now be created from a platform template via `templateId`.
+
+- **Read templates with `get_ai_group_template`** - no args returns the list (`searchName`
+  for a fuzzy name match, `createdBy`, `page`, `pageLimit` default 50, `applyFlag=1` to
+  include system presets); pass `templateId` to get one template's full detail. Note this
+  read sits behind the **write** scope.
+- **Apply it** by passing `templateId` (>0) to `create_sd_ai_managed_group` or
+  `save_sp_sb_ai_managed_group`. The template supplies defaults for `acos`, `optimizeType`,
+  `status`, `budgetDynamicStatus`, `numType`, `num`, `campaignNameSign`,
+  `targetHarvestStatus`, `budgetRedistributeStatus`, `aiPersonality`, plus the action-space
+  and automation config.
+- **Anything you pass explicitly wins over the template value.** Fields you omit fall back
+  to the template. So "use template X but with a 25% ACOS target" is one call: `templateId`
+  plus `acos: 25`.
+- **You still supply the identity and membership yourself**: `profileId`,
+  `smartCreationName`, `campaignIds`. Templates don't carry those. `budget` /
+  `budgetChange` are also **not** template-controlled on SD.
+- **One template restriction is a hard error.** If the template's target-harvest (rule 4) or
+  negative-target (rule 5) config is bound to *specific campaigns and ad groups*
+  (`isSelf=2` with the rule enabled), the call is rejected - this tool can't carry those
+  bindings. The error names the offending rules. Tell the user to either apply that template
+  in the platform UI, or pick a template whose rules use "current object" scope.
+- **Templates are not tied to an ad type, and a cross-type apply is handled for you.**
+  Applying an SP template to an SB group works: the server zeroes the SP-only fields the
+  template carries (`bidAmazonBusinessStatus`, `btbRangeStatus`/`btbMin`/`btbMax`,
+  `bidDaypartStatus`, `bidPerformanceStrictAcosStatus`,
+  `bidAdPlaceStatus`/`bidAdPlaceRangeStatus`, `tos`/`pdp`/`ros` bounds,
+  `structPauseProductStatus`/`structPauseCampaignStatus`) instead of erroring.
+  **But this only happens when you leave `aiActionSettings` out of your call.** If you send
+  `aiActionSettings` yourself, the template's action-space config is skipped entirely (yours
+  wins, it is not merged) and the normal SB compatibility check applies - an SP-only field
+  with a non-zero value then fails the whole request. So when applying a template
+  cross-type, don't also hand-build `aiActionSettings`; and tell the user those SP-only
+  parts of the template won't take effect on an SB group.
+- **Templates are read-only through MCP.** You cannot create, edit, or delete a template,
+  and you cannot save a group's settings back as one - that's platform-only. Say so rather
+  than attempting a workaround.
+
+Before applying a template, it's worth reading its detail and telling the user what it will
+set - especially the AI on/off (`status`) value, since a template can start AI immediately.
 
 ## AI on vs off at creation
 

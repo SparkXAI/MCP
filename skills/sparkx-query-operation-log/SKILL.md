@@ -1,21 +1,24 @@
 ---
 name: sparkx-query-operation-log
-version: 1.1.1
 description: >-
   Query SparkX AI platform operation logs: user and AI action history on ad entities.
   For tracking change history, auditing operations, troubleshooting issues.
   Keywords: operation log, change history, who changed what, bid adjustment records,
   budget adjustment, AI auto-adjustment, pause/enable records, operation audit,
   modification timeline, ad adjustment log
+metadata:
+  version: 1.2.0
 ---
 
 # Query Operation Log Skill
 
 ## MCP Tool
 
-This skill maps to MCP tool: **`get_operation_log`**. Required scope: `amazon_sa:ads_logs:read`.
+This skill maps to MCP tool: **`get_operation_log`**. Required scope: `amazon_sa_ads_logs:read`.
 
-Profile, tenant, and user scope are resolved from the authenticated bearer token. `profileIds` is **required** — always call `get_user_authorized_context` first to obtain authorized profile IDs, then pass one or more into `profileIds`. Requested `profileIds` are intersected with the token's authorized set — an ID outside that set is silently dropped, not rejected (see Platform-Wide Rules below). If the user didn't specify a store, pass **all** authorized `profileIds`. Never pass `tenantId` or `userId`; the server derives them from the token.
+Profile, tenant, and user scope are resolved from the authenticated bearer token. `profileIds` is **required** — always call `get_user_authorized_context` first to obtain authorized profile IDs, then pass one or more into `profileIds`. **Every requested ID must be authorized: one unauthorized value fails the entire call** with `invalid_params` / `Requested profileIds contain unauthorized values` — nothing is silently dropped (see Platform-Wide Rules below). If the user didn't specify a store, pass **all** authorized `profileIds`. Never pass `tenantId` or `userId`; the server derives them from the token.
+
+**⚠️ On this tool, how many `profileIds` you pass also changes the timezone of the timestamps you get back.** Read "createdDate Timezone" below before you report any time to the user.
 
 **`userContext` (required)**: Must pass a non-empty string on every call. Preserve the user's original query as much as possible, plus the agent's reason for calling this tool. Summarize if too long, max 100 characters.
 
@@ -134,6 +137,35 @@ See the Tool Selection Decision Tree above if the user's ask might belong to `ge
 
 The pagination fields differ by mode: **Mode A (real pagination)** returns `page`, `pageSize`, `hasNextPage`; **Mode B (limit-only)** returns `limit`, `truncated` (as shown above).
 
+## ⚠️ `createdDate` Timezone (depends on entity + profileIds count)
+
+**`createdDate` is not always UTC. Its timezone depends on which entity the row belongs to and on how many `profileIds` you passed.** Confirmed by testing (2026-08):
+
+| Entity | profileIds count | `createdDate` timezone | Example |
+|---|---|---|---|
+| `aiGroup` | one or many | **UTC** | `2026-08-24 05:58:50` |
+| `campaign` / `adGroup` / `target` / `placement` | **one** | **Store-local** | `2026-08-24 00:01:06` (LA time) |
+| `campaign` / `adGroup` / `target` / `placement` | **many** | **UTC** | `2026-08-24 07:01:06` (UTC) |
+
+Verified on one pause record for a US profile (`America/Los_Angeles`, UTC-7 in August):
+- `profileIds: [4404871489220462]` → `"2026-08-24 00:01:06"`
+- `profileIds: [4404871489220462, 2618208845223116]` → `"2026-08-24 07:01:06"`
+
+Same event, 7 hours apart — exactly the LA daylight-saving offset.
+
+### What you must do about it
+
+1. **Always label the timezone when you show a timestamp.** "2026-08-24 07:01 UTC" or "2026-08-24 00:01 store time". An unlabeled timestamp from this tool is ambiguous by construction, and the ambiguity is a whole business day near midnight.
+2. **Never merge or compare a single-profile result with a multi-profile result.** They're on different clocks. If you already pulled one store and then widen the scope, **re-pull** — don't stitch.
+3. **Watch for mixed clocks inside one response.** `entities: ["campaign", "aiGroup"]` on a single profile returns store-local campaign rows *and* UTC aiGroup rows in the same list. Rows are sorted on the raw timestamp string, so a mixed-clock result is **not reliably chronological** — don't present it as an ordered timeline, and don't compute "X happened before Y" across entity types.
+4. **Pick the mode deliberately:**
+   - The user wants times they can match against their Amazon console → query **one profile at a time**, restrict `entities` to ad entities (`campaign`/`adGroup`/`target`/`placement`), and label the output store-local.
+   - The user wants a comparable cross-store timeline → query **multiple profiles** (everything comes back UTC) or convert client-side using each row's `countryCode`, and label the output UTC.
+5. **Don't equate `createdDate` with the `dateStart`/`dateEnd` boundary.** Which zone the request-level filter uses is not documented, so a row can sit near the edge of your requested window in one clock and outside it in another. For boundary-sensitive questions ("what changed yesterday" on a non-UTC store), say results at the edges are approximate.
+6. **Don't derive "AI acts at night" style conclusions from raw timestamps** without first pinning down which clock you're in — an hour-of-day pattern computed on UTC rows for a US store is shifted by 7-8 hours.
+
+The MCP layer does no conversion; this is how the log data itself is returned.
+
 | Field | Type | Description |
 |---|---|---|
 | `isError` | boolean | Whether the call errored — check this before reading `rows` |
@@ -145,9 +177,11 @@ The pagination fields differ by mode: **Mode A (real pagination)** returns `page
 | `limit` | int | **Mode B only.** The `pageSize` cap actually applied |
 | `truncated` | boolean | **Mode B only. `true` means more matched than `limit` could return.** You cannot page — steer the user to a single entity (→ Mode A), else split the date range into non-overlapping sub-windows, else add filters as a last resort (flagging the result as partial) |
 | `hint` | string | Guidance message, present when `truncated=true` |
-| `effectiveProfileIds` | array[long] | Profile IDs actually applied after intersecting with the token's authorized set |
+| `effectiveProfileIds` | array[long] | Profile IDs the query ran against — an echo of your request (unauthorized IDs fail the call outright) |
+| `requestId` | string | Trace ID — quote it when reporting a failure to the user. May be absent locally |
+| `currency` | string | Optional roll-up of the rows' currencies: a single code if all rows agree, the literal **`"mixed"`** if they don't, absent if no row carries one. **`"mixed"` is not a currency** — fall back to each row's `currencyCode`, and never sum or format amounts across a mixed result |
 
-On error, the response instead follows the shared error envelope (`isError:true`, `errorType`, `message`, possibly `dimension`/`retryAfterSeconds`) described in Platform-Wide Rules above.
+On error, the response instead follows the shared error envelope described in Platform-Wide Rules above (two shapes: `errorType` for tool errors, `error` for pipeline errors such as `rate_limited`).
 
 ## Getting a Complete Count (handling large result sets rigorously)
 
@@ -204,18 +238,19 @@ There is no server-side `groupBy` for this tool — to answer "how many budget c
 ## Notes
 
 - **`operationType` and `actionType` are closed enums** — you MUST only use values listed in [`references/field-reference.md`](references/field-reference.md). Never invent, guess, or interpolate values. If unsure whether a value exists, consult the reference table before sending the request. Values are English display strings (e.g. `"DailyBudget Increased"`, `"Campaign Paused"`) — pass them exactly as listed, case-sensitive
-- `dateStart`/`dateEnd` request params use `YYYY-MM-DD`; `createdDate` in returned rows is a full UTC timestamp
+- `dateStart`/`dateEnd` request params use `YYYY-MM-DD`; `createdDate` in returned rows is a full timestamp — **but its timezone varies** (`aiGroup` = UTC; ad entities = store-local for one `profileId`, UTC for several). Always label the zone, never merge single- and multi-profile results, and treat a mixed-entity result as not reliably chronological. See "createdDate Timezone" above
 - `dateEnd` must be equal to or later than `dateStart`
 - Max date span is 90 days, max lookback is 15 months — these are hard limits, not auto-truncation. Split longer windows into multiple calls
 - **Pagination has two modes (decided by `entities`)**: a single non-`aiGroup` entity → real pagination (`page` + `pageSize`, loop until `hasNextPage=false`); multi-entity or `aiGroup`-only → limit-only (`pageSize` caps the call, max 1,000 / `aiGroup` 10,000, check `truncated`). For a complete count in limit-only mode, prefer steering to a single entity, otherwise use the non-overlapping date-split procedure above
 - When `entities` is not specified, returns operations on all entity types **except `audience`**
-- `profileIds` is **required**. Always call `get_user_authorized_context` first. If the user doesn't name a store, pass all authorized `profileIds`
-- Requested `profileIds` are intersected with the authorized set, not rejected outright — check `effectiveProfileIds`
+- `profileIds` is **required**. Always call `get_user_authorized_context` first. If the user doesn't name a store, pass all authorized `profileIds` — but note this also switches ad-entity timestamps to UTC (see above)
+- **Every requested `profileId` must be authorized** — one bad value fails the whole call (`Requested profileIds contain unauthorized values`); nothing is silently dropped
+- `pageSize` on this tool is **clamped** silently (over the max → capped, no error). This differs from `get_ads_perf`/`get_entity_metadata`, where an out-of-range `pageSize` is an error
 - `changeBy`, `actionType`, and `operationType` should be passed as objects with explicit `operator`/`values` (not bare arrays)
 - To find a resource by name (campaign name, keyword text, ASIN) rather than ID, resolve it first via `get_entity_metadata`, then pass the ID into `resourceIds`
 - No server-side aggregation (`groupBy`) — aggregate client-side after pulling rows, splitting non-overlapping date windows whenever `truncated=true`
 - When `profileIds` spans multiple stores, map each row's `profileId` to a `profileName` before describing results
-- Amounts in `previousValue`/`newValue` are always local currency — read the row's `currencyCode`, don't assume USD
+- Amounts in `previousValue`/`newValue` are always local currency — read the row's `currencyCode`, don't assume USD. The optional top-level `currency` may be the literal `"mixed"` on cross-store results; that's a marker, not a currency
 - `placementTypes` has exactly 4 confirmed values — don't invent additional ones
 - On error, check `errorType` and handle per the guidance above (e.g. `rate_limited` means wait `retryAfterSeconds` before retrying, not that the question is unanswerable)
 

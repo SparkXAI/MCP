@@ -63,7 +63,7 @@ guard this (MCP bypass) - you must.
 | Field | Values |
 |---|---|
 | `status` | `0`=off, `1`=on |
-| `optimizeType` | `1`=drive growth, `2`=maintain stability |
+| `optimizeType` | `1`=drive growth, `2`=maintain stability, `3`=boost volume. Values outside 1-3 are rejected (`Parameter 'optimizeType' must be 1 (drive growth), 2 (maintain stability), or 3 (boost volume)`). Note the tool's own inline description still lists only 1 and 2 — 3 is accepted; the validation is authoritative |
 | `targetHarvestStatus` | `0`=off, `1`=on, `2`=on with exact negation |
 | `budgetRedistributeStatus` | `0`/`1` |
 | `aiPersonality` | `1`-`5` |

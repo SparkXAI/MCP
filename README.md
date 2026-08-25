@@ -2,11 +2,11 @@
 
 把 SparkX AI 的广告能力接进你自己的 AI Agent（WorkBuddy、Claude、ChatGPT 等），数据从此融入你的工作流——大白话查数据、做分析、算真账，还能和你自己的成本、利润、目标放在一起算。完成授权后，无需反复登录平台、导出表格或在系统之间来回切换。
 
-当前版本 v1.1.0 支持数据查询和 AI 托管组的创建、编辑与删除。Campaign 直接管理能力尚未开放。
+当前版本 v1.2.0 支持数据查询和 AI 托管组的创建、编辑与删除，含小时级（AMS）数据、托管组排期、自动化规则读取与模板套用。Campaign 直接管理能力尚未开放。
 
 ---
 
-## v1.1.0 能帮你做什么
+## v1.2.0 能帮你做什么
 
 - **用自然语言查你的数据**——直接问「上周各 campaign 按 ACOS 排个序」「这个产品线最近 8 周的 TACOS 趋势」，完成授权后无需反复登录或导表。
 - **结合你自己的数据算真账**——把你的成本 / 毛利 / 目标交给 AI，让它拉广告花费：「按真实毛利，哪些 campaign 在亏钱——砍还是加？」这种需要把广告数据和你自己的业务数据合起来算的问题，平台单独算不出来。
@@ -74,7 +74,7 @@ SparkX AI MCP 支持 OAuth 和 MCP Token 两种授权方式。
 
 1. 添加 MCP Server（`https://mcp.sparkx.cn/mcp`，Streamable HTTP）。先检查客户端支持的授权方式，说明 OAuth 与 MCP Token 的适用场景，并让用户确认后再配置。若选择 OAuth，必须遵循 MCP Authorization 规范，在发送任何 OAuth 请求前校验 discovery 元数据、请求端点和全部必填字段，不得省略或猜测协议参数。
 2. 调用 `get_user_authorized_context` 验证，返回店铺列表即为成功。
-3. 读取 `skills/manifest.json`，将已安装 Skill 的本地 `SKILL.md` frontmatter 中的 `version` 与 manifest 中同名 Skill 的版本比较。本地版本较低时列出并提醒用户更新；版本相同、未安装或无法读取时不要误报。
+3. 读取 `skills/manifest.json`，将已安装 Skill 的本地 `SKILL.md` frontmatter 中的 `metadata.version` 与 manifest 中同名 Skill 的版本比较。本地版本较低时列出并提醒用户更新；版本相同、未安装或无法读取时不要误报。
 4. 直接安装 6 个必装 Skills：3 个查询 Skills，以及 `sparkx-create-ai-group`、`sparkx-edit-ai-group`、`sparkx-delete-ai-group`，无需再次询问用户。
 5. 介绍 4 个可选 Skills（广告周报、广告月报、广告结构分析、商品诊断），仅安装用户确认需要的项目。
 
@@ -96,11 +96,11 @@ MCP 的 Tool 决定 AI"能拿到什么数据"，Skill 决定 AI"把数据用得�
 
 | Skill | 对应 MCP Tool | 用途 |
 |-------|--------------|------|
-| [sparkx-query-ads-performance](skills/sparkx-query-ads-performance/) | `get_ads_perf` | 查询广告效果指标：花费、ACOS、ROAS、趋势、排名、同环比 |
-| [sparkx-query-entity-metadata](skills/sparkx-query-entity-metadata/) | `get_entity_metadata` | 查询实体配置：广告活动 / 广告组 / 投放 / ASIN / 托管组的名称、状态、设置 |
+| [sparkx-query-ads-performance](skills/sparkx-query-ads-performance/) | `get_ads_perf` | 查询广告效果指标：花费、ACOS、ROAS、趋势、排名、同环比，以及小时级（AMS）与关键词×广告位 |
+| [sparkx-query-entity-metadata](skills/sparkx-query-entity-metadata/) | `get_entity_metadata` | 查询实体配置：广告活动 / 广告组 / 投放 / ASIN / 托管组的名称、状态、设置，以及托管组排期与规则模式的规则配置 |
 | [sparkx-query-operation-log](skills/sparkx-query-operation-log/) | `get_operation_log` | 查询操作日志：人工与 AI 的调价、调预算、启停记录 |
-| [sparkx-create-ai-group](skills/sparkx-create-ai-group/) | `create_sd_ai_managed_group` / `save_sp_sb_ai_managed_group` | 创建 SP、SB 或 SD AI 托管组 |
-| [sparkx-edit-ai-group](skills/sparkx-edit-ai-group/) | `edit_sd_ai_managed_group` / `save_sp_sb_ai_managed_group` | 编辑单个或批量 AI 托管组 |
+| [sparkx-create-ai-group](skills/sparkx-create-ai-group/) | `create_sd_ai_managed_group` / `save_sp_sb_ai_managed_group` / `save_sp_sb_ai_group_schedule` / `get_ai_group_template` | 创建 SP、SB 或 SD AI 托管组，可套用平台模板，并可继续设置 SP/SB 排期 |
+| [sparkx-edit-ai-group](skills/sparkx-edit-ai-group/) | `edit_sd_ai_managed_group` / `save_sp_sb_ai_managed_group` / `save_sp_sb_ai_group_schedule` / `get_ai_group_template` | 编辑单个或批量 AI 托管组，套用模板，维护 SP/SB 排期 |
 | [sparkx-delete-ai-group](skills/sparkx-delete-ai-group/) | `delete_ai_managed_group` | 删除托管组，并释放或迁移其中的 Campaign |
 
 **可选（4 个）**——进阶分析场景，装完必装 Skills 后按需添加：
@@ -109,7 +109,7 @@ MCP 的 Tool 决定 AI"能拿到什么数据"，Skill 决定 AI"把数据用得�
 |-------|------|
 | [sparkx-weekly-ads-report](skills/sparkx-weekly-ads-report/) | 广告周报：KPI 环比、7 天趋势、异常摘要、Top 变化榜、下周行动建议 |
 | [sparkx-monthly-ads-report](skills/sparkx-monthly-ads-report/) | 广告月报：全月 KPI（环比 + 同比）、结构拆解、商品与关键词分析 |
-| [sparkx-ads-structure-analysis](skills/sparkx-ads-structure-analysis/) | 广告结构分析：按广告类型 / 站点 / 组合等维度定位结构错配 |
+| [sparkx-ads-structure-analysis](skills/sparkx-ads-structure-analysis/) | 广告结构分析：按广告类型 / 站点 / 组合 / 工作日 / 小时等维度定位结构错配 |
 | [sparkx-product-diagnosis](skills/sparkx-product-diagnosis/) | 商品诊断：ASIN 健康度分层、变体对比、去留优化建议 |
 
 **安装方式**（任选其一）：
@@ -139,10 +139,10 @@ MCP 的 Tool 决定 AI"能拿到什么数据"，Skill 决定 AI"把数据用得�
 
 - **写操作直接生效**：创建、编辑和删除托管组会直接修改线上配置。只应向可信用户授予写入或删除权限；执行前必须核对 Profile、对象和变更内容并取得明确确认，执行后必须回查。
 - **写入范围**：当前仅支持 AI 托管组管理，不支持直接创建、编辑或删除 Campaign。
-- **暂不支持**：托管组排期、通过模板设置托管组、词库相关设置；RBA 配置不可读取或修改。行动空间允许从 RBA 切换为 AI，但不支持从 AI 切换为 RBA。
+- **暂不支持**：词库相关设置；模板的创建与编辑（可读取并套用）；RBA 规则配置的修改（**可以读取**）。托管组排期已支持读写，但仅限 SP/SB。行动空间允许从 RBA 切换为 AI，但不支持从 AI 切换为 RBA。
 - **范围**：你能查的店铺，与你的 SparkX 账号（主 / 子账号）权限一致。
 - **历史回溯**：约可查最近 15 个月。
-- **非秒级实时**：与 SparkX AI 平台数据更新节奏一致；效果数据最细到天。
+- **非秒级实时**：与 SparkX AI 平台数据更新节奏一致；效果数据默认按天，受支持的 AMS 场景可按小时查询。
 
 ---
 

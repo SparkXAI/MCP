@@ -31,7 +31,7 @@ the three goals below. `4` is a legacy value not shown in the UI; don't offer it
 
 ## optimizeType (SD) - 优化类型
 
-SD only has two (no 冲量).
+SD `optimizeType` accepts `1`/`2`.
 
 | code | 中文 | English | 常见说法 |
 |---|---|---|---|
@@ -86,6 +86,32 @@ group reads back as `2` once turned off.
 | *MatchType | `2` | 词组 | phrase |
 | *ListType | `1` | 包含 / 白名单 | include / whitelist |
 | *ListType | `2` | 排除 / 黑名单 | exclude / blacklist |
+
+## 自动化规则 / Rule-based automation terms
+
+Use these terms when users mention automation templates that can be paired with AI Action
+Space in Rule/RBA mode. Creating a managed group is still AI-mode only; rule-template
+configuration itself is not written by this skill.
+
+| 中文 | English | related action-space field / ruleType |
+|---|---|---|
+| 自动化规则 | Rule-based automation / Automation rules | `aiAutomation` |
+| 自动化规则模板 | Automation rule template | template configured in the platform UI |
+| 分时调价 | Bid dayparting | `bidDaypart` / ruleType `2` |
+| 分时预算 | Budget dayparting | `budgetDaypart` / ruleType `13` |
+| 定向规则 | Targeting rules | standalone ruleType `15` / `18` |
+| 添加搜索词 | Harvest Keywords / Add Search Keywords | `targetHarvest` / ruleType `4` |
+| 添加否定词 | Add Negative Keywords | `negativeTarget` / ruleType `5` |
+| 预算规则 | Budget rules | `budgetPerformance` / ruleType `17` |
+| 广告位规则 | Placement Rules | `bidAdPlace` / ruleType `19` |
+| 开启/暂停广告活动（新版） | Campaign activation/pausing (New) | `structPauseCampaign` / ruleType `20` |
+| 商品库存规则 | Product inventory rules | standalone automation rule, not an AI Action Space switch |
+| 基于当日实时数据的策略 | strategy based on real-time data of the current day | automation rule strategy type |
+| 基于历史数据的策略 | strategy based on historical data | automation rule strategy type |
+| 频率设置 / 执行频次 | Frequency settings / Execution frequency | rule schedule |
+| 关联广告活动 | Associate Campaigns | campaign-template binding |
+| 自定义定时策略 | Custom scheduled strategy | scheduled campaign/budget rule strategy |
+| 不循环 | No recurrence | one-time campaign activation/pausing schedule |
 
 ## 行动空间(AI Action Space)开关 - UI 中文 <-> 字段族
 

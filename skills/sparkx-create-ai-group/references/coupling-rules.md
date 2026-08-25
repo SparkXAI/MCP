@@ -10,6 +10,11 @@ won't enforce them, so you must. (Exact field names: `field-reference.md`.)
   (`1`=percentage / `2`=fixed) and `budgetNum` (the value). Value bounds (the batch path
   uses `budgetDynamicStatus`/`numType`/`num`): `num > 0`; `numType=1` (percentage)
   `num <= 1000`; `numType=2` (fixed) `num <= 100000`.
+  **Use percentage mode (`1`) whenever the operation spans stores in different currencies** -
+  a fixed amount has no single meaning across currencies, and nothing on the backend stops
+  you from applying one uniformly. If the user asks for a fixed increase across a
+  mixed-currency set, either convert per store and write per store, or switch them to a
+  percentage and say why.
 - **Bid range** (`bidRangeStatus=1`) -> also `bidRangeType` and `bidRange` `[min,max]`
   (array length exactly 2, **min <= max**). `bidRangeType=1` (percentage): `0.01 <= min`
   and `max <= 100`. `bidRangeType=2` (fixed): `min >=` the site's minimum bid. Note:

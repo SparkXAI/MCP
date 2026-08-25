@@ -225,7 +225,7 @@ Same values as campaignServingStatus above, plus:
 
 ## AI Action Space feature switches (`aiGroup.*Status_`)
 
-All are `0`/`1` except `targetPausedAddStatus` which is `0`/`1`/`2`.
+All are `0`/`1` except `targetPausedAddStatus` and `targetHarvestStatus` which are `0`/`1`/`2`.
 
 **Common 0/1 values**: `0` = Off (关闭 / オフ), `1` = On (开启 / オン)
 
@@ -234,12 +234,12 @@ All are `0`/`1` except `targetPausedAddStatus` which is `0`/`1`/`2`.
 | `bidAdPlaceStatus_` | Placement multiplier | 广告位调价 | 掲載位置入札調整 |
 | `bidDaypartStatus_` | Bid dayparting | 分时调价 | 時間帯別入札調整 |
 | `bidPerformanceStatus_` | Adjust base bids based on performance | 按表现调价 | パフォーマンスに基づく入札調整 |
-| `bidOptimizationStatus_` | Bid optimization | 竞价优化 | 入札最適化 |
+| `bidAmazonBusinessStatus_` | Amazon Business (B2B) bid optimization | B2B 竞价优化 | Amazon Business（B2B）入札最適化 |
+| `btbRangeStatus_` | B2B bid range | B2B 竞价范围 | B2B 入札レンジ |
 | `budgetDaypartStatus_` | Budget dayparting | 分时预算 | 時間帯別予算 |
 | `budgetDynamicStatus_` | Budget boosting | 预算加注 | 予算ブースト |
 | `budgetRedistributeStatus_` | Budget reallocation | 预算重新分配 | 予算再分配 |
 | `negativeTargetStatus_` | Add negative targets | 添加否定定向 | 除外ターゲティング追加 |
-| `structOptimizationStatus_` | Structure optimization | 结构优化 | 構造最適化 |
 | `structPauseProductStatus_` | Pause underperforming products | 暂停表现不佳的商品 | パフォーマンス低下商品の一時停止 |
 | `structPauseCampaignStatus_` | Pause underperforming campaigns & ad groups | 暂停表现不佳的广告活动和广告组 | パフォーマンス低下キャンペーン＆広告グループの一時停止 |
 | `competitorStatus_` | Competitor keyword library | 竞品词库 | 競合キーワードライブラリ |
@@ -251,6 +251,14 @@ All are `0`/`1` except `targetPausedAddStatus` which is `0`/`1`/`2`.
 | `0` | Pause targets off | 定向暂停关闭 | ターゲティングの一時停止：オフ |
 | `1` | Pause targets on; targeting supplementation unchecked | 定向暂停开启，不勾选定向补充 | ターゲティングの一時停止：オン、ターゲティング補充は未選択 |
 | `2` | Pause targets on; targeting supplementation checked | 定向暂停开启，勾选定向补充（暂停定向后，立即补充相同数量的定向） | ターゲティングの一時停止：オン、ターゲティング補充を選択 |
+
+### targetHarvestStatus (`aiGroup.targetHarvestStatus_`) — special 3-value field
+
+| API value | EN | ZH | JA |
+|---|---|---|---|
+| `0` | Off | 关闭 | オフ |
+| `1` | On (target harvest) | 开启定向收割 | ターゲット収集をオン |
+| `2` | On, and add exact negative to source ads | 开启定向收割，且在来源广告添加精准否定 | ターゲット収集をオン、かつ元広告に完全一致の除外を追加 |
 
 ## asinInventoryStatus (`asin.asinInventoryStatus_`)
 

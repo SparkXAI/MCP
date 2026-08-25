@@ -8,7 +8,8 @@ description: >-
   the user asks "我哪些 ASIN 有问题", "变体谁在拖后腿", "新品该不该继续投", "product diagnosis",
   "ASIN health check". Not for account-wide structural share analysis (use sparkx-ads-structure-analysis)
   or periodic WoW/MoM recaps (use sparkx-weekly-ads-report / sparkx-monthly-ads-report).
-version: 1.0.0
+metadata:
+  version: 1.0.1
 ---
 
 # Product Diagnosis
@@ -25,7 +26,7 @@ This skill does **not** map to a single MCP tool of its own — it orchestrates 
 
 **Read all three SKILL.md files first** (parameter formats, field-naming rules, the Ratio Metric Display Rule, and — specific to this skill — [`references/ad-type-dependent-metrics.md`](references/ad-type-dependent-metrics.md)'s rule that ASIN business metrics must never be joined or filtered against campaign/adGroup/aiGroup-level fields) plus [`references/platform-notes.md`](references/platform-notes.md) (auth flow, error handling, pagination, date-range limits, currency rules). This document only covers logic specific to product diagnosis; it doesn't repeat what the base skills already document.
 
-Based on the original `product_diagnosis` concept sketch in `skill-design-draft.md` (Group 2 · 专项深度分析), rewritten against the new tool's conventions from the start — carries forward the discipline established across `sparkx-weekly-ads-report`/`sparkx-monthly-ads-report`/`sparkx-ads-structure-analysis`: full `profileIds` resolution rules, currency-aware thresholds, output-language adaptivity, disclosed sampling fallback, and zero-denominator handling.
+Rewritten against the new tool's conventions from the start — carries forward the discipline established across `sparkx-weekly-ads-report`/`sparkx-monthly-ads-report`/`sparkx-ads-structure-analysis`: full `profileIds` resolution rules, currency-aware thresholds, output-language adaptivity, disclosed sampling fallback, and zero-denominator handling.
 
 ## Output Language: Always Match the User, Never Hard-Code Chinese or English
 
@@ -42,7 +43,7 @@ Based on the original `product_diagnosis` concept sketch in `skill-design-draft.
 **Not for**:
 - Account-wide spend/efficiency structure by campaign type / site / portfolio → `sparkx-ads-structure-analysis`
 - Periodic WoW/MoM cadence recaps → `sparkx-weekly-ads-report` / `sparkx-monthly-ads-report`
-- Keyword/search-term level diagnosis → a dedicated skill (not yet built, see `skill-design-draft.md`'s 2.3)
+- Keyword/search-term level diagnosis → a dedicated skill (not yet built)
 
 ## Input Parameters
 
@@ -101,10 +102,10 @@ Default: trailing 30 days ending yesterday (T+2 delay — note if the window's e
 
 **⚠️ `Sales` and `TotalSalesAmount` are two different things, both requested deliberately**: `Sales` is ad-attributed sales (the numerator context for `ACOS`, whose formula is `Spend/Sales×100`); `TotalSalesAmount` is the ASIN's total business sales including organic (the denominator for `TACOS`, whose formula is ad `Spend/TotalSalesAmount`). Don't drop either thinking the other covers it — see Step 3's zero-denominator handling, which depends on both being present.
 
-**⚠️ `TotalSalesAmount`/`TACOS` are Seller Central metrics — they don't exist for a Vendor Central profile** (confirmed against the product's own live "ASIN 层级" board, which explicitly labels these columns "(Seller)"; see `sparkx-query-ads-performance`'s field-reference for the full split). There's no queryable field that tells you a profile's account type in advance. If this call comes back with `TotalSalesAmount`/`TACOS` all null/zero while `Spend`/`Sales` on the same rows are non-zero, that's a Vendor Central profile, not "no total sales this period" — retry with `OrderedRevenue`/`OrderedTACOS` (pre-shipment) or `ShippedRevenue`/`ShippedTACOS` (post-shipment, COGS-aware) instead, and relabel Step 3's ranking table/TACOS column accordingly rather than silently reporting a zero that isn't real.
+**⚠️ `TotalSalesAmount`/`TACOS` are Seller Central metrics — they don't exist for a Vendor Central profile** (the product's "ASIN 层级" board labels these columns "(Seller)"). There's no queryable field that proves a profile's account type in advance. If `TotalSalesAmount`/`TACOS` are null/zero on every row while `Spend`/`Sales` are non-zero, treat Vendor Central as a **hypothesis, not a conclusion**: retry with `OrderedRevenue`/`OrderedTACOS` (pre-shipment) or `ShippedRevenue`/`ShippedTACOS` (post-shipment, COGS-aware). Use and relabel the Vendor fields only when that retry returns meaningful data; otherwise report the business-sales field set as unavailable rather than inferring account type from nulls alone.
 
 Scope this call per `scope`:
-- `topN` → `orderBy` on the primary ranking metric (default `Spend` descending), `pageSize` = `min(topN, 500)` (`get_ads_perf`'s confirmed max `pageSize`) — if `topN > 500`, loop `page` while `hasNextPage` to collect the remainder rather than requesting an oversized `pageSize` in one call, which would be an `invalid_params` error
+- `topN` → `orderBy` on the primary ranking metric (default `Spend` descending), `pageSize` = `max(1, min(topN, 500))` — `get_ads_perf` rejects a `pageSize` of `0`, a negative number, or anything over `500` with `invalid_params` (it does **not** clamp), so both ends need guarding: a `topN` of `0` must not become `pageSize: 0`, and if `topN > 500`, keep `pageSize: 500` and loop `page` while `hasNextPage` to collect the remainder instead of requesting an oversized page
 - `all` → fully paginate, no `orderBy` requirement, disclosed sampling fallback applies at scale
 - `specifiedAsins` → `filters: {"asin.asin_": {"in": [...]}}`, batched per "Batching Large ASIN Lists" below if the list is long
 - `underperformingOnly` → pull the full/sampled population first (Step 3-4 needs the full picture to correctly classify "underperforming" relative to the rest of the catalog), then filter to the flagged tiers when presenting — don't pre-filter the query itself on a guessed threshold before you've computed the lifecycle tiers
@@ -249,7 +250,7 @@ _生成时间：{timestamp} · 数据源：SparkX AI MCP · Skill: sparkx-produc
 - **Lifecycle tier cutoffs are heuristic**, not a certified business classification — always show the underlying numbers (spend share, ACOS, trend) alongside the tier label so the customer can judge, don't present the tier as an automated verdict beyond dispute.
 - **`get_entity_metadata` has no historical-snapshot capability** — inventory/eligibility status in Step 5's diagnostic card reflects the *current* state, not necessarily the state at the time of the decline. Say so if the timing matters and can't be confirmed.
 - **`variant` granularity requires an anchor** (a named parent or child ASIN) — there is no "compare all variants across the whole catalog at once" mode; see "Granularity" above.
-- **`TotalSalesAmount`/`TACOS` only exist for Seller Central profiles** — a Vendor Central profile needs `OrderedRevenue`/`OrderedTACOS` or `ShippedRevenue`/`ShippedTACOS` instead, and there's no field that reports account type in advance; see Step 2a's warning for the detection/fallback procedure.
+- **`TotalSalesAmount`/`TACOS` only exist for Seller Central profiles** — Vendor data uses `OrderedRevenue`/`OrderedTACOS` or `ShippedRevenue`/`ShippedTACOS`, and no field reports account type in advance. Follow Step 2a's retry procedure; do not classify the account from nulls alone.
 
 ## Example Call
 
@@ -280,7 +281,7 @@ Follows the shared error envelope used by both underlying tools (`isError`/`erro
 
 - Account-wide structural share analysis → `sparkx-ads-structure-analysis`
 - Periodic WoW/MoM cadence recaps → `sparkx-weekly-ads-report` / `sparkx-monthly-ads-report`
-- Search-term/keyword-level diagnosis → a dedicated skill (not yet built, see `skill-design-draft.md`'s 2.3)
+- Search-term/keyword-level diagnosis → a dedicated skill (not yet built)
 - SKU-level margin/profitability (needs the customer's own cost data)
 
 ## Version History
@@ -297,3 +298,5 @@ Follows the shared error envelope used by both underlying tools (`isError`/`erro
 - **v0.1.9** (2026-07-24) · A follow-up self-review (fresh-eyes pass over the whole file against the three base skills' docs) found the "Multi-Store and Currency" section's per-store attribution instruction wasn't actually reaching the output: it told Step 2a/2b to add `profile.profileId_`/`profile.profileName_` to `select` for multi-store `profileIds`, but neither the markdown ranking table nor `structured_report`'s `ranking` schema had anywhere to put that data — the same ASIN across two stores would show as two indistinguishable rows. Added a conditional 店铺/Store column to the markdown table (multi-store only, not shown for a single profile) and `profileId`/`profileName` fields to `structured_report.ranking` (`null` in single-store mode), and reworded the markdown header's `{profile_name}` to not assume a single store. (The self-review also flagged that `TotalSalesAmount`/`TACOS`'s Seller/Vendor split — v0.1.8 — isn't reflected in either output template either; left unaddressed for now at the user's explicit instruction to set that part aside.)
 - **v0.1.10** (2026-07-28) · Corrected Step 2c's new-product identification against the authoritative tool spec: `asinOpenDate` is **not** a filterable `get_entity_metadata` field (v0.1.2 still filtered on it). Rewrote to pull asin metadata for the current analysis set with full pagination (no `asinOpenDate` filter — default page size 100 would otherwise silently truncate a catalog past one page), then filter to the analysis window **client-side** on the returned `asinOpenDate`, a datetime-with-timezone string (e.g. `"2026-06-01 00:00:00 PST"`, not `YYYYMMDD`/`YYYY-MM-DD`) that must be parsed with PST-timezone awareness. Kept the `scope=specifiedAsins`/`granularity=variant` scoping so the pull stays within what the user asked about. Also renamed the "weekly-aggregation example" cross-reference → "aggregation-over-time example" in references.
 - **v0.1.11** (2026-07-28) · Added an explicit dependency declaration to the Scope section (needs `sparkx-query-ads-performance`/`sparkx-query-entity-metadata`/`sparkx-query-operation-log` installed as sibling skills for the `../query-.../…` cross-references to resolve). Links unchanged — they're correct for the standard flat `.claude/skills/<name>/` layout; the note just makes the install dependency explicit.
+- **v1.0.0** (2026-08-18) - First stable release; moved from `skills/optional/` to the top-level `skills/` folder alongside the required skills.
+- **v1.0.1** (2026-08-25) - Guarded the derived `pageSize` at both ends (`max(1, min(topN, 500))`) now that an out-of-range value is a hard error instead of being clamped. Platform-behavior sync: all-or-nothing `profileIds`, `language` default `en`, and the entity/profile-count-dependent `createdDate` timezone on `get_operation_log`. Removed a reference to a design draft that doesn't ship with the skill.

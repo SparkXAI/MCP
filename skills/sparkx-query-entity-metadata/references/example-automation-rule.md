@@ -1,6 +1,6 @@
-# Automation Rule Lookup
+# Enabled Automation-Rule Type Lookup
 
-Which automation rules are enabled on a set of campaigns:
+Which automation rule **types** are enabled on a set of campaigns:
 
 ```json
 {
@@ -33,3 +33,6 @@ Notes:
 - `amazonCampaignId` in `filters` is **required** for this entity — there is no way to list all campaigns' rules without specifying which campaigns.
 - No `orderBy`/`page`/`pageSize` effect — results always come back in the order the campaign IDs were requested.
 - An empty campaign in the response (`enabledRuleTypes: []`) means that campaign simply has no automation rules enabled, not an error.
+- This response is only an enabled-type summary. It cannot answer "show the rule's conditions/actions/frequency/template name" or list the account's automation templates.
+- For a managed group's embedded Rule-mode configuration, query `entity: "aiGroup"` and read `aiAutomation.{ruleType}` using [`automation-rule-reading.md`](automation-rule-reading.md).
+- Product inventory rules are SKU/product-scoped and are not represented by this campaign lookup; do not infer their absence from an empty `enabledRuleTypes` array.

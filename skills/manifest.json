@@ -1,85 +1,96 @@
 {
-  "$schema_note": "Machine-readable manifest of SparkX AI MCP official skills. Version fields must stay in sync with each skill's SKILL.md frontmatter.",
+  "$schema_note": "Machine-readable manifest of SparkX AI MCP official skills. Version fields must stay in sync with each skill's SKILL.md frontmatter (`metadata.version`).",
   "manifest_version": 1,
-  "updated_at": "2026-08-20",
-  "release": "v1.1.0",
+  "updated_at": "2026-08-25",
+  "release": "v1.2.0",
   "skills": [
     {
       "name": "sparkx-query-ads-performance",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "required": true,
-      "mcp_tool": "get_ads_perf",
-      "scope": "amazon_sa:performance:read",
+      "mcp_tools": ["get_ads_perf"],
+      "scopes": ["amazon_sa_performance_data:read"],
       "path": "sparkx-query-ads-performance",
-      "description": "Query advertising performance metrics: spend, clicks, sales, ACOS, ROAS, trends, rankings, period comparison."
+      "description": "Query advertising performance metrics: spend, clicks, sales, ACOS, ROAS, trends, rankings, period comparison, plus hourly (AMS) and keyword-placement breakdowns."
     },
     {
       "name": "sparkx-query-entity-metadata",
-      "version": "1.1.3",
+      "version": "1.2.0",
       "required": true,
-      "mcp_tool": "get_entity_metadata",
-      "scope": "amazon_sa:ads_configuration:read",
+      "mcp_tools": ["get_entity_metadata"],
+      "scopes": ["amazon_sa_ads_configuration:read"],
       "path": "sparkx-query-entity-metadata",
-      "description": "Query advertising entity metadata: campaign / ad group / target / ASIN / AI group name, status, configuration."
+      "description": "Query advertising entity metadata: campaign / ad group / target / ASIN / AI group configuration, managed-group schedules, campaign enabled-rule types, and managed-group Rule-mode configuration."
     },
     {
       "name": "sparkx-query-operation-log",
-      "version": "1.1.1",
+      "version": "1.2.0",
       "required": true,
-      "mcp_tool": "get_operation_log",
-      "scope": "amazon_sa:ads_logs:read",
+      "mcp_tools": ["get_operation_log"],
+      "scopes": ["amazon_sa_ads_logs:read"],
       "path": "sparkx-query-operation-log",
-      "description": "Query operation logs: user and AI action history on ad entities (bid, budget, status changes)."
+      "description": "Query operation logs: user and AI action history on ad entities (bid, budget, status changes), including the entity- and profile-count-dependent timestamp timezone rules."
     },
     {
       "name": "sparkx-create-ai-group",
-      "version": "1.0.3",
+      "version": "1.1.0",
       "required": true,
-      "mcp_tools": ["create_sd_ai_managed_group", "save_sp_sb_ai_managed_group"],
+      "mcp_tools": ["create_sd_ai_managed_group", "save_sp_sb_ai_managed_group", "save_sp_sb_ai_group_schedule", "get_ai_group_template"],
+      "scopes": ["amazon_sa_managed_group:write"],
       "path": "sparkx-create-ai-group",
-      "description": "Create SP, SB, or SD AI managed groups and assign campaigns after explicit confirmation."
+      "description": "Create SP, SB, or SD AI managed groups and assign campaigns after explicit confirmation, optionally from a platform template and with an SP/SB schedule."
     },
     {
       "name": "sparkx-edit-ai-group",
-      "version": "1.0.4",
+      "version": "1.1.0",
       "required": true,
-      "mcp_tools": ["edit_sd_ai_managed_group", "save_sp_sb_ai_managed_group"],
+      "mcp_tools": ["edit_sd_ai_managed_group", "save_sp_sb_ai_managed_group", "save_sp_sb_ai_group_schedule", "get_ai_group_template"],
+      "scopes": ["amazon_sa_managed_group:write"],
       "path": "sparkx-edit-ai-group",
-      "description": "Edit one or multiple AI managed groups with confirmation and read-back verification."
+      "description": "Edit one or multiple AI managed groups with confirmation and read-back verification; apply templates and manage SP/SB group schedules."
     },
     {
       "name": "sparkx-delete-ai-group",
-      "version": "1.0.2",
+      "version": "1.0.3",
       "required": true,
-      "mcp_tool": "delete_ai_managed_group",
+      "mcp_tools": ["delete_ai_managed_group"],
+      "scopes": ["amazon_sa_managed_group_delete:write"],
       "path": "sparkx-delete-ai-group",
       "description": "Delete an AI managed group and explicitly release or migrate its campaigns."
     },
     {
       "name": "sparkx-weekly-ads-report",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "required": false,
+      "mcp_tools": ["get_ads_perf", "get_entity_metadata", "get_operation_log"],
+      "scopes": ["amazon_sa_performance_data:read", "amazon_sa_ads_configuration:read", "amazon_sa_ads_logs:read"],
       "path": "sparkx-weekly-ads-report",
       "description": "Generate a weekly ad performance recap: KPI card with WoW comparison, 7-day trend, anomalies, top movers, next-week actions."
     },
     {
       "name": "sparkx-monthly-ads-report",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "required": false,
+      "mcp_tools": ["get_ads_perf", "get_entity_metadata", "get_operation_log"],
+      "scopes": ["amazon_sa_performance_data:read", "amazon_sa_ads_configuration:read", "amazon_sa_ads_logs:read"],
       "path": "sparkx-monthly-ads-report",
       "description": "Generate a monthly ad performance recap: full-month KPIs (MoM + YoY), structural breakdown, product and keyword analysis, next-month recommendations."
     },
     {
       "name": "sparkx-ads-structure-analysis",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "required": false,
+      "mcp_tools": ["get_ads_perf", "get_entity_metadata"],
+      "scopes": ["amazon_sa_performance_data:read", "amazon_sa_ads_configuration:read"],
       "path": "sparkx-ads-structure-analysis",
-      "description": "Analyze spend and efficiency breakdown across campaign type / marketplace / portfolio / weekday dimensions and flag structural mismatches."
+      "description": "Analyze spend and efficiency breakdown across campaign type / marketplace / portfolio / weekday / hour-of-day dimensions and flag structural mismatches."
     },
     {
       "name": "sparkx-product-diagnosis",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "required": false,
+      "mcp_tools": ["get_ads_perf", "get_entity_metadata", "get_operation_log"],
+      "scopes": ["amazon_sa_performance_data:read", "amazon_sa_ads_configuration:read", "amazon_sa_ads_logs:read"],
       "path": "sparkx-product-diagnosis",
       "description": "Diagnose ASIN-level health: lifecycle tiering, variant comparison, diagnostic cards for underperformers, keep/optimize/cut recommendations."
     }

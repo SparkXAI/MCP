@@ -54,10 +54,26 @@ Everything inside `request`; **Flat** operation params go in `batchParams`,
 
 - **Flat** ops -> `batchParams`: `STATUS`, `BUDGET`, `TARGET_TYPE`, `ACOS`, `ROAS`,
   `TARGET_HARVEST`, `DYNAMIC_BUDGET`, `CAMPAIGN_NAME_SIGN`, `AI_PERSONALITY`.
-- **Action-space** ops -> `aiActionSettings` / `aiAutomation`: `BID_OPTIMIZATION`,
-  `STRUCT_OPTIMIZATION`, `BUDGET_DAYPART`, `BUDGET_DYNAMIC_ACTION`, `BUDGET_REDISTRIBUTE`,
-  `TARGET_HARVEST_ACTION`, `NEGATIVE_TARGET`, `BRAND_TARGET`, `TARGET_PAUSED_ADD`,
-  `ACTION_SETTINGS`.
+- **Action-space** ops -> `aiActionSettings` / `aiAutomation`: `BID_OPTIMIZATION`, `STRUCT_OPTIMIZATION`, `BUDGET_DAYPART`, `BUDGET_DYNAMIC_ACTION`, `BUDGET_REDISTRIBUTE`, `ACTION_SETTINGS`.
+  - **Schema-only - do not use on SP/SB** (word-list, rejected in batch): `NEGATIVE_TARGET`, `BRAND_TARGET`, `TARGET_PAUSED_ADD`, `TARGET_HARVEST_ACTION`. (`TARGET_HARVEST_ACTION` / `targetHarvest` are valid on the **SD** tool, not here.)
+
+> **Naming**: the server's canonical codes are camelCase (`budget`, `status`, `targetType`,
+> `acos`, `roas`, `targetHarvest`, `dynamicBudget`, `campaignNameSign`, `aiPersonality`,
+> `bidOptimization`, `structOptimization`, `budgetDaypart`, `budgetDynamicAction`,
+> `budgetRedistribute`, `targetHarvestAction`, `negativeTarget`, `brandTarget`,
+> `targetPausedAdd`). Deserialization ignores case and underscores, so the UPPER_SNAKE_CASE
+> names above work too. An unrecognized value fails with `Unknown BatchOperationType: x`.
+
+> **⚠️ Word-list-related operations are unreliable in batch mode - avoid them.**
+> `NEGATIVE_TARGET`, `BRAND_TARGET`, `TARGET_PAUSED_ADD` and `TARGET_HARVEST_ACTION` touch
+> word-list config, which the SP/SB tool no longer accepts as input, and at least some of
+> them are rejected outright in batch mode. Server-side sources are inconsistent about
+> exactly which of the four are refused, so **treat all four as unavailable in batch**: do
+> them one group at a time in the platform, or tell the user word-list settings aren't
+> editable here. Don't probe production to find out which one works.
+
+> **`templateId` overrides `operation`.** If both are present, the template path runs and
+> the batch operation is ignored. Never send both.
 
 ## Flat operation parameter map
 
@@ -92,8 +108,9 @@ The containers differ, but the mutual-exclusion rules do not: never send both
   token's scope; keep every batch single-profile.
 - **Which groups can share one batch:**
   - **SP + SB can be mixed** for operations both support.
-  - **SP-only operations** (`structOptimization`, `targetPausedAdd`) must **exclude SB**
-    ids - split them out; don't run them against SB.
+  - **SP-only operations** (`structOptimization`) must **exclude SB**
+    ids - split them out; don't run them against SB. (`targetPausedAdd` is not usable
+    here - it's disabled in SP/SB batch; see the word-list note above.)
   - **SD is always the other tool** (`edit_sd_ai_managed_group`) - never in the same call.
     A wrong-tool/wrong-type call is rejected (`campaignType must be sponsoredProducts or
     sponsoredBrands`), but split by `campaignType` from metadata first.
@@ -125,6 +142,13 @@ Handling `partial_failure` - **the failed set isn't always enumerated**:
    because you don't yet know which succeeded.
 
 Never describe a partial success as a full success.
+
+**One known cause of silent per-item failure**: if `ids` contains a group whose `targetType`
+is `4` (the legacy "maximize spending" goal that the UI no longer offers), an
+`AI_PERSONALITY` or budget-increase style operation comes back as **fail for that item** -
+no error, just not applied. Two consequences: read each group's `targetType` before batching
+personality/budget operations and exclude the `targetType=4` ones up front, and when you see
+unexplained `fail` entries, check for this before assuming a transient problem.
 
 ## Multiple requested changes
 
