@@ -2,7 +2,7 @@
 
 本文件记录 SparkX AI MCP Skills 与配套文档的版本变化。
 
-## [1.2.0] - 2026-08-25
+## [1.1.1] - 2026-08-25
 
 基于线上 `v1.1.0` 一次升级，对齐 MCP Server `pre` 分支的当前行为，并补齐小时级（AMS）数据、托管组排期、规则模式配置读取与解释。
 
@@ -36,7 +36,7 @@
 ### 文档一致性
 
 - `skills/README.md` 版本表补齐至各 `SKILL.md` 实际版本（此前落后 4 处），Scope 列改为实名。
-- `skills/manifest.json`：`release` → `v1.2.0`、`updated_at` → `2026-08-25`；字段统一为 `mcp_tools`（数组）与 `scopes`（数组），并为全部 10 个 skill 补齐工具与 scope。
+- `skills/manifest.json`：`release` → `v1.1.1`、`updated_at` → `2026-08-25`；字段统一为 `mcp_tools`（数组）与 `scopes`（数组），并为全部 10 个 skill 补齐工具与 scope。
 - 全部 Skill 的版本统一放在 frontmatter `metadata.version`，并将安装检查指引同步为读取该字段，以通过 Codex Skill frontmatter 校验。
 - 四个可选 Skill 的 Version History 补上 `1.0.0` 与 `1.0.1` 条目（此前停在 v0.x），并清理了指向未随包发布的设计草稿的引用。
 - 读侧 `platform-notes.md` 的自述改为通用措辞，7 份副本现为逐字节一致（此前自称"仅 3 个读 skill 各有一份"）。
@@ -44,7 +44,7 @@
 - 修正自检发现的跨文档矛盾：SB Rule 模式配置可读但不可写；创建侧规则 4/5/182 字段明确标为只读上下文；排期分页字段明确为顶层响应字段；Vendor 指标回退不再仅凭空值直接判定账户类型。
 - 版本发布改为以 `main` 分支线上 `manifest.json` 为基线；同一未发布批次内的多轮本地修正合并为一次版本升级，不从本地临时版本连续递增。
 
-### 随 1.2.0 一并发布的历史未发布条目
+### 随 1.1.1 一并发布的历史未发布条目
 
 以下条目此前累积在 `[Unreleased]` 中，未单独发版。
 

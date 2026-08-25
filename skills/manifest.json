@@ -2,7 +2,7 @@
   "$schema_note": "Machine-readable manifest of SparkX AI MCP official skills. Version fields must stay in sync with each skill's SKILL.md frontmatter (`metadata.version`).",
   "manifest_version": 1,
   "updated_at": "2026-08-25",
-  "release": "v1.2.0",
+  "release": "v1.1.1",
   "skills": [
     {
       "name": "sparkx-query-ads-performance",
