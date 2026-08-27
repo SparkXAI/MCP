@@ -1,17 +1,17 @@
 {
   "$schema_note": "Machine-readable manifest of SparkX AI MCP official skills. Version fields must stay in sync with each skill's SKILL.md frontmatter (`metadata.version`).",
   "manifest_version": 1,
-  "updated_at": "2026-08-25",
+  "updated_at": "2026-08-27",
   "release": "v1.1.1",
   "skills": [
     {
       "name": "sparkx-query-ads-performance",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "required": true,
       "mcp_tools": ["get_ads_perf"],
       "scopes": ["amazon_sa_performance_data:read"],
       "path": "sparkx-query-ads-performance",
-      "description": "Query advertising performance metrics: spend, clicks, sales, ACOS, ROAS, trends, rankings, period comparison, plus hourly (AMS) and keyword-placement breakdowns."
+      "description": "Query advertising performance metrics: spend, clicks, sales, ACOS, ROAS, trends, rankings, period comparison, plus hourly (AMS), keyword-placement, and Vendor ASIN (shipped/ordered, distributorView/sellingProgram) breakdowns."
     },
     {
       "name": "sparkx-query-entity-metadata",

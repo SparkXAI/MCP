@@ -151,11 +151,40 @@ If `campaignType` is missing or unrecognized, nothing is trimmed.
 - A rule running in **Rule mode** (`status=1`) keeps its config but drops AI-panel-only parameters (e.g. rule 181 drops `bidPerformanceStrictAcosStatus`; rule 17 drops `numType`/`num`).
 - `targetPausedAddStatus=2` is reported as `1` in Rule mode (the AI-only sub-option is folded away).
 
+**`aiAutomation.{ruleType}.status` is a mode discriminator, not an enable switch.** Never
+translate `status=1` as "enabled" or `status=0` as "disabled". The paired
+`aiActionSettings.*Status` switch determines whether the action space is on; when it is on,
+`status=1` means Rule mode and an omitted Rule entry means AI mode.
 **How to talk about this to a user:**
 
+**Before presenting a managed-group configuration, read
+[`references/managed-group-display.md`](references/managed-group-display.md).** It defines the
+customer-facing language, UI grouping, setting labels, and rule names. Backend object names are
+not product section names.
 - Report what's present as the live configuration. For anything absent, say "not currently in effect" and, if relevant, name the switch that gates it — don't say "not set" and don't guess at a stored value.
 - If the user asks "did my change save?", verify by reading the **switch** you set, then its dependents. Absent dependents under an off switch are expected, not evidence of failure.
 - Don't diff two `aiGroup` reads field-by-field and call every disappearance a regression — flipping one switch off legitimately removes a whole family of fields from the response.
+- If the user asks for the **full / complete managed-group configuration**, do not compress
+  sibling controls into a phrase such as "bid adjustment + placement + range". Group the
+  returned switches by the UI's Bid / Budget / Targeting / Structure sections and report each
+  supported switch separately, including off switches. For every on, rule-capable switch, report
+  AI vs Rule mode and then its dependent values. A field trimmed because the ad type does not
+  support it is "unsupported / not exposed for this ad type", not "off".
+- Map `targetType` through the managed-group display guide and preserve the UI's selected objective
+  label in the user's language. For example, a Chinese answer for `targetType=2` says **保持订单稳定**.
+  "控制成本" is only the surrounding category, and a returned English label such as "Optimize
+  ROAS" must not replace the selected Chinese option.
+- For managed groups and their schedules, display `aiPersonality` as the numeric level only, for
+  example **AI 人格：4**. Do not replace or supplement it with `aiPersonalityText` labels such as
+  "激进", "略激进", or "Aggressive".
+- Treat bid-range values according to `bidRangeType`: numeric amount vs percentage. Never call a
+  displayed currency range a coefficient, and never infer that placement adjustment is on merely
+  because bid range is on.
+- Do not show backend field names or rule numbers in a normal customer answer. Use localized UI
+  names from the display guide. Raw keys/codes belong only in a separate technical appendix when
+  explicitly requested.
+- `brandOptimization` is not an action-space category. Present it separately as Brand/non-brand/
+  competitor mode / 品牌/非品牌/竞品模式.
 
 ### Reading rule-mode (RBA) rule configuration
 
@@ -221,6 +250,9 @@ For enum-valued fields, the response **automatically appends a human-readable `{
 ```
 
 Fields that get this treatment: all `*State` fields (campaignState/adGroupState/targetState/portfolioState/productAdState), all `*ServingStatus` fields, `campaignType`, `biddingStrategy`, `targetingType`/`targetMatchType`/`matchType`, `placement`, `costType`/`budgetType`/`portfolioBudgetType`, `aiStatus`/`aiTargetType`/`aiPersonality`, `asinInventoryStatus`/`asinSpEligibilityStatus`/`asinIsDelete`, generic `xxxStatus` (0/1) flags, `countryCode`, `isAiCreate`/`sdBidOptimization`/`profileUseBudgetCap`.
+
+Customer-display exception: for managed-group `aiPersonality`, keep the raw numeric level `1`-`5`
+as the displayed value. Do not substitute its `Text` companion; see the managed-group display guide.
 
 **Exception**: `automationRule.enabledRuleNames` is already a human-readable string array — there is no separate `Text` field for it.
 
@@ -298,6 +330,7 @@ On error, the response instead follows the shared error envelope described in Pl
 - Field dictionary (entity enum values, per-entity field tables, filterable fields, enums): [`references/field-reference.md`](references/field-reference.md)
 - Enum i18n (ZH/EN/JA display labels for all enum values — use this when presenting enum fields to the user or translating between API values and localized display text): [`references/enum-i18n.md`](references/enum-i18n.md)
 - Automation-rule reading guide (query-surface boundary, mode detection, rule semantics, conditions/actions/schedules): [`references/automation-rule-reading.md`](references/automation-rule-reading.md)
+- Managed-group customer display (localized UI labels, product sections, rule names, output shape): [`references/managed-group-display.md`](references/managed-group-display.md)
 - Query examples:
   - [Basic entity list query](references/example-meta-only.md)
   - [Filtered campaign list](references/example-campaign-filter.md)

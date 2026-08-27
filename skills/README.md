@@ -9,7 +9,7 @@
 
 | Skill | 版本 | 对应 MCP Tool | 所需 Scope | 用途 |
 |-------|------|--------------|-----------|------|
-| [sparkx-query-ads-performance](sparkx-query-ads-performance/) | 1.1.0 | `get_ads_perf` | `amazon_sa_performance_data:read` | 查询广告效果指标：花费、ACOS、ROAS、趋势、排名、同环比，以及小时级（AMS）与关键词×广告位 |
+| [sparkx-query-ads-performance](sparkx-query-ads-performance/) | 1.2.0 | `get_ads_perf` | `amazon_sa_performance_data:read` | 查询广告效果指标：花费、ACOS、ROAS、趋势、排名、同环比，小时级（AMS）与关键词×广告位，以及 Vendor ASIN 指标口径（shipped/ordered、distributorView/sellingProgram） |
 | [sparkx-query-entity-metadata](sparkx-query-entity-metadata/) | 1.2.0 | `get_entity_metadata` | `amazon_sa_ads_configuration:read` | 查询实体配置：广告活动 / 广告组 / 投放 / ASIN / 托管组的名称、状态、设置，以及托管组排期、Campaign 已启用规则类型与托管组规则模式配置 |
 | [sparkx-query-operation-log](sparkx-query-operation-log/) | 1.2.0 | `get_operation_log` | `amazon_sa_ads_logs:read` | 查询操作日志：人工与 AI 的调价、调预算、启停记录（含时间戳时区规则） |
 | [sparkx-create-ai-group](sparkx-create-ai-group/) | 1.1.0 | `create_sd_ai_managed_group` / `save_sp_sb_ai_managed_group` / `save_sp_sb_ai_group_schedule` / `get_ai_group_template` | `amazon_sa_managed_group:write` | 创建 SP、SB 或 SD AI 托管组，可套用平台模板，并可继续设置 SP/SB 排期 |

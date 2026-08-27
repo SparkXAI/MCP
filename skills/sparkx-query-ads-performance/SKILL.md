@@ -6,9 +6,10 @@ description: >-
   Keywords: ad data, performance, spend analysis, ACOS, sales, conversion rate,
   campaign performance, adGroup comparison, keyword analysis, ASIN ads, search term report,
   daily/weekly/monthly trends, top N ranking, week-over-week, year-over-year,
-  hourly data, by hour, intraday, AMS, Amazon Marketing Stream, keyword placement
+  hourly data, by hour, intraday, AMS, Amazon Marketing Stream, keyword placement,
+  vendor, seller, distributorView, sellingProgram, shipped revenue, ordered revenue, TACOS
 metadata:
-  version: 1.1.0
+  version: 1.2.0
 ---
 
 # Query Ads Performance Skill

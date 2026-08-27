@@ -157,7 +157,10 @@ One row per campaign × placement combination.
 Sourced from a separate backend (`td-api getSaAiGroupList`), aggregated from the SA perspective — richer field set than the ads DB.
 
 **Return fields** (partial — full list is long):
-`aiGroupId`, `aiGroupName`, `aiStatus` (`0`=AI never turned on, `1`=AI currently running, `2`=AI turned off), `campaignType`, `targetType` (`1`=Drive Growth/`2`=Maintain Stable Orders/`3`=Event Boost), `targetAcos`, `aiPersonality` (1-5), `aiPersonalityUpdatedAt`, `profileId`, `profileName`, `countryCode`, `numCampaign`, `numProduct`, `campaignNameSign`, `createTime`, `createBy`, `createUid`, `hasEditAuth`, `isAutoPacing`, `statusOnDate`, `lastStatusOnDate`, `lastStatusOffDate`, `lastOnDays`, `lastOnDaysBegin`, `lastOnDaysEnd`, `totalBudget`, `totalDailyBudget`, `sbStyleNum`, `aiActionSettings`, `aiAutomation`
+`aiGroupId`, `aiGroupName`, `aiStatus` (`0`=AI never turned on, `1`=AI currently running, `2`=AI turned off), `campaignType`, `targetType` (`1`=Drive growth/推动增长, `2`=Optimize ROAS/保持订单稳定, `3`=Promotion sales boost/活动冲量), `targetAcos`, `aiPersonality` (1-5), `aiPersonalityUpdatedAt`, `profileId`, `profileName`, `countryCode`, `numCampaign`, `numProduct`, `campaignNameSign`, `createTime`, `createBy`, `createUid`, `hasEditAuth`, `isAutoPacing`, `statusOnDate`, `lastStatusOnDate`, `lastStatusOffDate`, `lastOnDays`, `lastOnDaysBegin`, `lastOnDaysEnd`, `totalBudget`, `totalDailyBudget`, `sbStyleNum`, `aiActionSettings`, `aiAutomation`
+
+Display `aiPersonality` as its numeric value `1`-`5` in customer-facing group and schedule
+configuration output. Do not replace it with `aiPersonalityText` or append a personality label.
 
 - **`sbStyleNum`** (int/null): the **count** of SB ad styles in use — e.g. "3" means 3 different SB ad style/formats are running. This can answer "how many SB ad styles is this group using," but **not** "which specific style(s)" (product collection / store spotlight / video, etc) — that breakdown is not exposed by this field and is not otherwise documented in the platform spec. Don't infer or invent a style name from the count.
 - **`totalBudget` / `totalDailyBudget`** (number): the **sum of the group's enabled
@@ -165,8 +168,11 @@ Sourced from a separate backend (`td-api getSaAiGroupList`), aggregated from the
   rollups** here. On the write side, editing the group total **proportionally rescales
   every enabled campaign's daily budget** to the new total (see the create/edit skills) —
   don't treat them as independent editable fields.
-- **`aiActionSettings`** (object): action-space switches and their parameters. A relevant
-  `xxxStatus` value of `0` means off and `1` means on.
+- **`aiActionSettings`** (object): transport container for action-space switches and their
+  parameters, plus `brandOptimization`. A relevant `xxxStatus` value of `0` means off and `1`
+  means on. The container's nesting is not the customer-facing UI taxonomy:
+  `brandOptimization` must be presented separately as brand/non-brand/competitor mode, not as an
+  action space. Use [`managed-group-display.md`](managed-group-display.md).
 - **`aiAutomation`** (object): keyed by rule type (`2`, `4`, `5`, `13`, `17`, `19`, `20`,
   `181`, `182`). Each entry's `status` is the mode: `0` = AI, `1` = Rule/RBA. Pair an
   action-space switch with its mode entry rather than deciding the mode from
@@ -187,6 +193,23 @@ Sourced from a separate backend (`td-api getSaAiGroupList`), aggregated from the
   same raw value can mean different things under different rule types, so never carry a
   label across rules. Reading is supported; **writing RBA config is not available through
   any MCP tool**.
+- For legacy rules `4`/`5`, `isSelf` is a confirmed three-value scope: `1` = current campaign,
+  all ad groups; `3` = current campaign, current ad group only; `2` = the specified
+  campaign/ad-group bindings in `campaignAd`. Their `condition[].day` lookback excludes today;
+  `condition[].exceptDay` removes the latest dates from inside that lookback. See
+  [`automation-rule-reading.md`](automation-rule-reading.md) for the exact date formula and
+  reporting shape.
+- For rule `13` (budget dayparting), percentage operations and the effective budget ratio are
+  different representations. Decrease by `X%` leaves `100%-X%` of the current daily budget;
+  increase by `X%` produces `100%+X%`. An unconfigured hour restores 100%. Label a derived matrix
+  as a calculated effective budget ratio, not an actual delivery/spend percentage. Fixed-budget
+  and amount operations remain currency values. See the rule-specific guide for examples.
+- For rule `17` (adjust budget by performance), an action's boundary belongs to that strategy:
+  combine its direction/value with `action.switch` and `action.bounds` instead of emitting a
+  second standalone budget-boundary section. `autoModifySwitch` and `autoModifySetting` form the
+  separate Custom settings group; when enabled, they set the budget to the configured value at
+  the next store-local 00:00. They are not part of the execution-time group and do not mean an
+  additional amount applied on every evaluation.
 
 For the paired-switch table, standalone-vs-managed capability boundary, condition priority,
 and rule-specific business semantics, read [`automation-rule-reading.md`](automation-rule-reading.md)
@@ -256,7 +279,7 @@ Pagination and `orderBy` are ignored; all schedules for the group come back in o
 | `timeType` | int | `1` = fixed date window, `2` = weekly repeat |
 | `startDate` / `endDate` | string | `timeType=1` only |
 | `weekDays` | array[int] | `timeType=2` only. `1`=Monday … `7`=Sunday |
-| `optimizeType` | int | `1`=Drive Growth, `2`=Maintain Stable Orders, `3`=Event Boost, `4`=Drive Growth · Budget-utilization priority. **`timeType=2`: inherited from the parent group, read it from the group row instead** |
+| `optimizeType` | int | `1`=Drive growth/推动增长, `2`=Optimize ROAS/保持订单稳定, `3`=Promotion sales boost/活动冲量, `4`=Drive growth · Budget-utilization priority. **`timeType=2`: inherited from the parent group, read it from the group row instead. For customer output use the selected option in the user's language, not the English enum or category heading.** |
 | `acos` | number | Target ACOS. Same inheritance note as `optimizeType` |
 | `aiPersonality` | int | 1–5. Same inheritance note as `optimizeType` |
 | `aiActionSettings` | object | Per-schedule action-space settings, same shape and same effective-config projection as on the group |

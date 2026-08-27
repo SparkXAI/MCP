@@ -73,7 +73,7 @@ faster when ACOS is badly off target. Field: `bidPerformanceStrictAcosStatus` (`
 
 - **SP only** - SB and SD do not support it; don't send it for them.
 - **Requires ALL of these together, or it will NOT trigger** (don't claim it's active
-  otherwise): `targetType=2` (Maintain Stability / 保持稳定) **and** `bidPerformanceStatus=1`
+  otherwise): `targetType=2` (Maintain Stability / 保持订单稳定) **and** `bidPerformanceStatus=1`
   (按表现调价 on, AI mode) **and** `aiPersonality >= 3`. Enabling it means setting/confirming
   all three; `aiPersonality` 1-2 never triggers it.
 - **Auto Pacing wins:** if the group's `isAutoPacing` is on, Strict ACOS is **paused** until

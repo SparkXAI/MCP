@@ -35,6 +35,9 @@ Always pair the action-space switch in `aiActionSettings` with the rule entry in
 | `181` | Optimize base bids | `bidOptimization.bidPerformanceStatus` |
 | `182` | Pause targets | `targetOptimization.targetPausedAddStatus` |
 
+This table is an internal parsing map. In customer output use the localized product names from
+[`managed-group-display.md`](managed-group-display.md), never the rule number.
+
 Decision procedure:
 
 1. If the paired switch is `0`, report the action space as off. Any dependent fields omitted by
@@ -45,6 +48,10 @@ Decision procedure:
    placeholders are removed by the server.
 4. If the switch is missing or malformed, say the effective mode cannot be determined from this
    row. Do not turn an empty `aiAutomation` into "all AI" or "all off".
+
+`aiAutomation.{ruleType}.status` describes **mode**, not enabled/disabled state. The paired action
+space switch is the enable signal. In particular, never render `status=1` as "enabled": render it
+as "Rule mode" and separately report whether the paired switch is on.
 
 `targetPausedAddStatus=2` is an AI-only "pause plus supplement" option. In Rule mode the response
 folds it to effective value `1`; describe rule `182` as pausing targets, not supplementing them.
@@ -59,8 +66,12 @@ folds it to effective value `1`; describe rule `182` as pausing targets, not sup
 - Different condition groups are OR; conditions inside one group are AND. When the raw response
   exposes only connectors such as `operation`/`operationText`, preserve their order and wording
   instead of flattening every item into AND.
-- Read `day` together with `exceptDay`: "past 7 days, excluding the latest 2" means the earlier
-  five-day portion of that lookback. Do not describe it as all seven days.
+- Read `day` together with `exceptDay`, using the store-local execution date `D`. "Past N days"
+  excludes today and initially covers `D-N` through `D-1`. `exceptDay=X` removes the latest X
+  dates from inside that N-day window, leaving `D-N` through `D-X-1` (`N-X` dates); it does not
+  shift the window backward to keep N dates. For example, past 3 days means yesterday, two days
+  ago, and three days ago; excluding the latest 1 leaves only two days ago and three days ago.
+  Blank/zero `exceptDay` means no additional exclusion.
 - `todayPerformance` means the current store day from 00:00 through the execution time.
   `historyPerformance` uses the configured historical lookback.
 - Unknown paths and values are intentionally passed through. If a leaf has no confirmed Text
@@ -84,8 +95,24 @@ folds it to effective value `1`; describe rule `182` as pausing targets, not sup
 - Business operations can be fixed budget, increase/decrease by percentage, or increase/decrease
   by amount. Decode a cell only when the response provides a confirmed Text value; otherwise show
   its raw operation/value.
+- Distinguish the **configured operation** from the **effective budget ratio**. For a percentage
+  operation relative to the current daily budget:
+  - decrease by `X%` -> effective ratio `100% - X%`;
+  - increase by `X%` -> effective ratio `100% + X%`.
+  Therefore, "decrease by 98%" means the effective budget is 2% of the current daily budget;
+  "decrease by 45%" means 55%. This is not a second rule or a conflicting value.
+- When presenting a percentage matrix, title it **Effective budget as a percentage of the current
+  daily budget (calculated)** / **相对当前日预算的生效预算比例（计算值）**. Do not call it simply
+  "actual delivery percentage": it is a budget limit, not a guarantee that the same percentage
+  will be spent or delivered.
+- Prefer showing both forms at least once, for example: "00:00-03:00: decrease the current daily
+  budget by 98%, so 2% is effective." Treat a displayed interval as `[start, end)`: 00:00-03:00
+  covers hours 00, 01, and 02.
+- A fixed-budget or amount-based operation stays in currency. Do not force it into a percentage
+  matrix without a confirmed base budget.
 - An unconfigured hour restores the campaign's current daily budget in SparkX AI. This reset behavior
-  is the key difference from rule `17` scheduled budget changes.
+  means an effective ratio of 100% for percentage presentation and is the key difference from rule
+  `17` scheduled budget changes.
 
 ### `17` - Budget rules / budget by performance
 
@@ -95,8 +122,30 @@ folds it to effective value `1`; describe rule `182` as pausing targets, not sup
   or set daily budget when conditions match. Ordered strategies are priority order.
 - Budget utilization means current-day spend divided by the latest daily budget at execution
   time. The Help Center describes checks every 30 minutes inside configured execution windows.
-- `autoModifySwitch` / `autoModifySetting` are optional budget callback/reset configuration. The
-  server currently passes these raw; residual fields do not prove the callback is enabled.
+- Render each strategy as one unit: trigger conditions, budget action, and that action's enabled
+  upper/lower bound. `action.switch` controls whether the strategy's bound applies and
+  `action.bounds` is the bound value. Directionally corresponding checked flags, when returned,
+  support the same presentation. Do not repeat them later as a separate "Budget boundaries"
+  section. If the sources conflict, report the inconsistency instead of silently choosing one.
+- Keep three sibling customer sections in this order: **Strategies**, **Frequency settings**, and
+  **Custom settings**. Custom settings do not belong inside execution time.
+- `autoModifySwitch=1` means the custom callback is enabled. At the next store-local 00:00, the
+  system sets the campaign budget to the value represented by `autoModifySetting`. For
+  `{"type":"amount","value":3}`, say "At 00:00 the next day, set the budget to $3" (using
+  the store currency), not "adjust by $3 each time". If `autoModifySwitch=0`, residual
+  `autoModifySetting` is not effective and must not be reported as active.
+
+Customer-facing example:
+
+> **按表现调预算：开启；运行方式：规则**
+>
+> 策略 1：当日 ACOS >= 70% 时，降低预算 40%，调整后预算不低于 $5。
+>
+> 策略 2：当日 ACOS < 45% 时，提高预算 40%，调整后预算不超过 $15。
+>
+> 频率设置：每天 00:00-24:00，每 30 分钟检查一次。
+>
+> 自定义设置：开启；次日 00:00 自动将预算设置为 $3。
 
 ### `19` - Placement rules
 
@@ -137,8 +186,18 @@ folds it to effective value `1`; describe rule `182` as pausing targets, not sup
 ### `4` / `5` - Harvest search terms / add negatives
 
 - These use a legacy raw structure: top-level `condition` arrays plus rule-specific `action`,
-  `isSelf`, `campaignAd`, and matching settings. Their deep read-path enums are not fully closed,
-  so preserve raw codes unless a Text field is present.
+  `isSelf`, `campaignAd`, and matching settings. Preserve unconfirmed deep values unless a Text
+  field is present, but use the confirmed `isSelf` mapping below.
+- `isSelf` controls where a harvested/negative target is added:
+
+  | `isSelf` | UI option | Operational meaning |
+  |---:|---|---|
+  | `1` | Current campaign (all ad groups) / 当前广告活动（所有广告组） | Add to every ad group in the source campaign. |
+  | `3` | Current campaign (current ad group) / 当前广告活动（当前广告组） | Add only to the source ad group. |
+  | `2` | Ad groups in specified campaigns / 指定广告活动的广告组 | Add only to the campaign/ad-group bindings listed in `campaignAd`; enumerate those bindings when present. |
+
+  Do not collapse `1` and `3` into "the current campaign" or "self"; they affect different
+  numbers of ad groups.
 - Help Center meaning: rule `4` adds qualifying search terms as keyword/product targets with a
   configured match method and bid; rule `5` adds qualifying search terms as exact/phrase negative
   targets.
@@ -157,14 +216,27 @@ folds it to effective value `1`; describe rule `182` as pausing targets, not sup
 
 ## 6. Recommended Explanation Shape
 
-For each rule, report:
+When the user asks for a **complete managed-group configuration**, first report the entire
+action-space matrix from `aiActionSettings`, grouped as Bid / Budget / Targeting / Structure. Show
+each supported switch as on or off. For an on rule-capable switch, pair it with `aiAutomation` and
+show AI or Rule mode; never infer one sibling switch from another. Then expand every retained Rule
+entry using the shape below. This prevents summaries such as "performance + placement + bid range"
+from incorrectly implying that all three switches are on.
+
+For each rule, report the customer-facing product name rather than `Rule <number>`:
 
 1. Rule name/code and effective mode.
 2. Applicable action space/object, only when exposed.
 3. Conditions, preserving group connectors and priority order.
 4. Action and bounds.
-5. Data period and execution schedule.
-6. Any raw/unconfirmed fields and the read-surface limitation.
+5. Data period, exclusion period, calculated effective window, and execution schedule.
+6. For rules `4`/`5`, the exact `isSelf` scope and any `campaignAd` bindings.
+7. Any raw/unconfirmed fields and the read-surface limitation.
+
+Use the managed-group UI action-space label in the main summary: rule `5` is **Add negative
+targets / 添加否定定向** there. "Add Negative Keywords / 添加否定词" is the corresponding
+automation-template name and may be shown secondarily, but should not replace the action-space
+label.
 
 Never claim that a managed-group read is the account's reusable automation template, and never
 claim that an enabled-type lookup contains the rule's actual configuration.

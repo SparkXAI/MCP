@@ -223,6 +223,8 @@ Same values as campaignServingStatus above, plus:
 | `4` | Aggressive | 激进 | 積極的 |
 | `5` | Very Aggressive | 非常激进 | 非常に積極的 |
 
+⚠️ **Query results and reports show the numeric level only** (e.g. **AI 人格：4**) — don't replace or supplement it with this table's text label. This mapping is for understanding a user's own wording ("偏保守", "跑激进点"), not for how you present the value back.
+
 ## AI Action Space feature switches (`aiGroup.*Status_`)
 
 All are `0`/`1` except `targetPausedAddStatus` and `targetHarvestStatus` which are `0`/`1`/`2`.

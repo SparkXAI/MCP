@@ -2,6 +2,19 @@
 
 本文件记录 SparkX AI MCP Skills 与配套文档的版本变化。
 
+## [Unreleased]
+
+### 新增
+
+- **Vendor ASIN 指标口径**（`sparkx-query-ads-performance` `1.1.0` → `1.2.0`，关联工单 BC-9770）：`TotalSalesAmount`/`OrderCount`/`UnitCount`/`TACOS` 在 Vendor 行取 shipped 口径（而非 ordered），与 Seller 行统一，可在混合查询中直接聚合。新增 `OrderedRevenue`/`OrderedTACOS`（仅 `distributorView_=MANUFACTURING` 下有值）与 `ShippedRevenue`/`ShippedTACOS`（两个视图均有值）的适用范围说明。新增 Vendor 维度自动锁定说明：底表每个 `(profileId, date, ASIN)` 最多 4 行（`distributorView_` × `sellingProgram_`），不锁维度会导致广告指标和 `GlanceViews` 膨胀最多 4 倍；服务端默认锁定 `MANUFACTURING` + `RETAIL`，`meta.appliedDefaults` 声明实际生效的默认值。补充混合 Seller+Vendor 查询时统一指标可直接聚合、Vendor 专属指标需按 `storeType_` 分组的说明。
+
+### 修正
+
+- **托管组完整配置解释**（`sparkx-query-entity-metadata`，版本待发布时统一调整）：新增客户展示层，按提问语言使用页面名称，默认隐藏后端字段和规则编号；将品牌/非品牌/竞品模式从 AI 行动空间中独立展示；区分目标类型的页面大类与实际选项，中文 `targetType=2` 展示为“保持订单稳定”而非“控制成本”或英文枚举；AI 人格直接展示 `1`-`5` 数字，不替换或追加“激进”等描述；明确 `aiAutomation.*.status` 表示 AI/Rule 模式而非启用状态；补全规则 4/5 的 `isSelf=1/2/3` 作用范围及历史窗口语义；按表现调预算把预算上下限合并回对应策略，并将“自定义设置”与“频率设置”分组，正确解释为次日店铺时间 00:00 将预算设置为配置值；补充分时预算“降低比例”到“相对当前日预算的生效预算比例”的换算，并避免将预算上限误称为实际投放比例。同步修正完整读取示例中关于 `select` 的错误说明。
+- **小时级（AMS）时区确认**（`sparkx-query-ads-performance`，同上版本区间）：`date`/`hour` 已确认为 profile 的本地 IANA 时区（非 UTC）；数据延迟约 2 小时（远快于日级 T+2）。
+- **小时级查询暂时没有已验证的商品身份关联路径**：`select` 中加入 `productAd.asin_`/`productAd.sku_` 会报 `业务错误`/`business_error`（无法连接 CTE）；`factEntity: productAd` 本身拒绝 `timeGranularity: hourly`。仅验证了 `productAd.*` 这一种组合，`asin.*` 维度、以及日级 `campaign`+`productAd` 组合是否同样失败均未测试，不要外推。
+- **15 个月回看边界为闭区间**：实测确认 `dateStart` 恰好等于 15 个月前的截止日期时查询成功，仅早于该日期才报错（`start.isBefore(earliest)` 语义）。此前文档误写为"边界当天即报错"。
+
 ## [1.1.1] - 2026-08-25
 
 基于线上 `v1.1.0` 一次升级，对齐 MCP Server `pre` 分支的当前行为，并补齐小时级（AMS）数据、托管组排期、规则模式配置读取与解释。

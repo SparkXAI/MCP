@@ -116,13 +116,21 @@ Display labels for enum values returned in the `{field}Text` companion fields. S
 
 ## aiTargetType (targetType)
 
-| API value | EN | ZH | JA |
-|---|---|---|---|
-| `1` | Drive Growth | 推动增长 | 成長の推進 |
-| `2` | Maintain Stable Orders | 保持订单稳定 | 安定の維持 |
-| `3` | Event Boost | 活动冲量 | キャンペーンの推進 |
+Increase sales / 扩大销量 and Drive efficiency / 控制成本 are UI category headings, not values
+of `targetType`. Use the selected option in the user's language as the primary value. Do not
+replace `targetType=2` with its category or copy the English option into a Chinese answer.
+
+| API value | EN option | ZH option | JA | UI category |
+|---|---|---|---|---|
+| `1` | Drive growth | 推动增长 | 成長の推進 | Increase sales / 扩大销量 |
+| `2` | Optimize ROAS | 保持订单稳定 | 安定の維持 | Drive efficiency / 控制成本 |
+| `3` | Promotion sales boost | 活动冲量 | キャンペーンの推進 | Increase sales / 扩大销量 |
 
 ## aiPersonality
+
+The labels below are parsing references. In customer-facing managed-group or schedule output,
+display the API value itself (`AI 人格：1` through `AI 人格：5`) and do not replace or append it
+with these descriptive labels.
 
 | API value | EN | ZH | JA |
 |---|---|---|---|
@@ -133,6 +141,10 @@ Display labels for enum values returned in the `{field}Text` companion fields. S
 | `5` | Very Aggressive | 非常激进 | 非常に積極的 |
 
 ## AI Action Space feature switches (aiGroup)
+
+These mappings support parsing. For customer-facing names and UI grouping, use
+[`managed-group-display.md`](managed-group-display.md); do not expose the backend field column by
+default. Brand/non-brand/competitor mode is separate from AI Action Space.
 
 All are `0`/`1` except `targetPausedAddStatus` which is `0`/`1`/`2`.
 
@@ -145,7 +157,7 @@ All are `0`/`1` except `targetPausedAddStatus` which is `0`/`1`/`2`.
 | `bidPerformanceStatus` | Adjust base bids based on performance | 按表现调价 | パフォーマンスに基づく入札調整 |
 | `bidOptimizationStatus` | Bid optimization | 竞价优化 | 入札最適化 |
 | `budgetDaypartStatus` | Budget dayparting | 分时预算 | 時間帯別予算 |
-| `budgetDynamicStatus` | Budget boosting | 预算加注 | 予算ブースト |
+| `budgetDynamicStatus` | Adjust budget by performance | 按表现调预算 | パフォーマンスに基づく予算調整 |
 | `budgetRedistributeStatus` | Budget reallocation | 预算重新分配 | 予算再分配 |
 | `negativeTargetStatus` | Add negative targets | 添加否定定向 | 除外ターゲティング追加 |
 | `structOptimizationStatus` | Structure optimization | 结构优化 | 構造最適化 |
@@ -168,27 +180,27 @@ All are `0`/`1` except `targetPausedAddStatus` which is `0`/`1`/`2`.
 | `aiAutomation` | Rule-based automation settings | 自动化规则设置 | Readable on `aiGroup` / `aiGroup_schedule`; rule config is not writable through MCP. |
 | `2` | Bid dayparting | 分时调价 | Automation template and action-space ruleType. |
 | `3` | Budget rules (legacy/deprecated) | 预算规则（老版废弃） | Standalone legacy automation rule; keep for interpreting historical campaigns, not for new setup. |
-| `4` | Harvest Keywords / Add Search Keywords | 添加搜索词 / 定向收割 | Help Center template name is 添加搜索词; AI Action Space name is 定向收割. |
-| `5` | Add Negative Keywords | 添加否定词 / 添加否定定向 | Help Center template name is 添加否定词; AI Action Space name is 添加否定定向. |
+| `4` | Target harvesting | 定向收割 | Managed-group customer label; standalone template name is Add Search Keywords / 添加搜索词. |
+| `5` | Add negative targets | 添加否定定向 | Managed-group customer label; standalone template name is Add Negative Keywords / 添加否定词. |
 | `13` | Budget dayparting | 分时预算 | Automation template and action-space ruleType. |
 | `15` / `18` | Targeting rules | 定向规则 | Standalone automation rule types; new targeting rule is `18`. |
-| `17` | Budget rules | 预算规则 | Also described in action-space docs as budget by performance / boost budget. |
-| `19` | Placement Rules | 广告位规则 | Standalone automation supports SP/SB; managed-group placement action space may be narrower. |
-| `20` | Campaign activation/pausing (New) | 开启/暂停广告活动（新版） | New pause/enable campaign automation rule. |
+| `17` | Adjust budget by performance | 按表现调预算 | Managed-group customer label; the Help Center's standalone template may use Budget Rules. |
+| `19` | Placement bid adjustment | 广告位调价 | Managed-group customer label; standalone template name is Placement Rules / 广告位规则. |
+| `20` | Pause campaigns and ad groups | 暂停广告活动和广告组 | Managed-group customer label; standalone automation has a broader activation/pausing name. |
 | `181` | Bid by performance | 按表现调价 | Managed-group action-space ruleType. |
-| `182` | Target pause/supplement | 定向暂停/补充 | Managed-group action-space ruleType. |
+| `182` | Pause targets | 定向暂停 | Rule mode exposes pause behavior; supplementation is AI-only. |
 | Product inventory rules | Product inventory rules | 商品库存规则 | Standalone automation; not an AI Action Space switch. |
 | Frequency settings / Execution frequency | Frequency settings / Execution frequency | 频率设置 / 执行频次 | Rule schedule settings. |
 | Associate Campaigns | Associate Campaigns | 关联广告活动 | Campaign-template binding. |
-| Applicable objects | Applicable objects | 生效对象 | Campaigns, selected ad groups, selected targets, or another rule-specific scope. |
+| Applicable objects | Applicable objects | 生效对象 | Campaigns, selected ad groups, selected targets, or another rule-specific scope. For rule 4/5 use the `isSelf` table in `automation-rule-reading.md`. |
 | Condition group | Condition group | 条件组 | Groups are OR; conditions inside one group are AND. Preserve the returned connectors. |
-| Data period / Data cycle | Data period / Data cycle | 数据周期 | Lookback window used to evaluate historical conditions. |
-| Exclusion period | Exclusion period | 排除时间范围 | Most recent days removed from the lookback window. |
+| Data period / Data cycle | Data period / Data cycle | 数据周期 | Past N store-local dates ending yesterday; today is not included. |
+| Exclusion period | Exclusion period | 排除时间范围 | Most recent X dates removed from inside the N-day lookback; the range is not shifted to keep N dates. |
 | Strategy based on real-time data of the current day | Strategy based on real-time data of the current day | 基于当日实时数据的策略设置 | Evaluates data from store-day 00:00 through the current execution time. |
 | Strategy based on historical data | Strategy based on historical data | 基于历史数据的策略设置 | Evaluates a configured historical lookback window. |
 | Timed budget changes | Timed budget changes | 定时变更预算 | Scheduled part of Budget Rules (`ruleType=17`), distinct from Budget Dayparting (`13`). |
 | Budget utilization | Budget utilization | 预算利用率 | Current-day spend divided by the latest daily budget at execution time. |
-| Budget callback / reset | Budget callback / reset | 预算回调 / 恢复预算 | Optional end-of-day reset in a current-day budget strategy; do not infer enablement from residual raw config. |
+| Custom budget reset | Custom budget reset | 自定义设置 / 次日回调预算 | When enabled, sets the budget to the configured value at the next store-local 00:00; residual config is inactive when its switch is off. |
 
 ## asinInventoryStatus
 

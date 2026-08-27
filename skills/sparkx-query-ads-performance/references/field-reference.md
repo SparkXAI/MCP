@@ -144,6 +144,8 @@ Never report AI performance from this entity or divide by those values; use `fac
 | `asin.asinSpEligibilityStatus_` / `asin.asinSbEligibilityStatus_` / `asin.asinSdEligibilityStatus_` | Ad-type eligibility, `ELIGIBLE` / `INELIGIBLE` |
 | `asin.asinIsDelete_` | `0` (active) / `1` (deleted) |
 
+**⚠️ Vendor-only fields `distributorView_` and `sellingProgram_` do NOT follow the `entity.field_` convention above.** They keep the `_` suffix but have **no entity prefix** (not `asin.distributorView_`), and are recognized by dedicated server-side extraction logic rather than the general dimension-join system every other field in this table goes through. See "Vendor dimension auto-locking" below for what they mean and how to use them — don't pattern-match them onto the `asin.xxx_` style used everywhere else in this file.
+
 ### ParentAsin
 
 | Field | Description |
@@ -294,6 +296,60 @@ Never report AI performance from this entity or divide by those values; use `fac
 `TotalSalesAmount`, `OrderCount`, `UnitCount`, `AverageOrderPrice`, `AverageProductPrice`, `TACOS`, `CPO`, `Sessions`, `UnitSessionPercentage`, `PageViews`, `GlanceViews`, `BuyBoxPercentage`, `OrderedUnits`, `OrderedRevenue`, `ShippedUnits`, `ShippedRevenue`, `ShippedCogs`, `CustomerReturns`, `NetPPM`, `UnavailabilityRate`, `AdsSalesRate`, `AdsOrdersRate`, `AdsUnitsRate`, `AdsSalesSameSKURate`, `AdsOrdersSameSKURate`, `AdsCVR`, `OrganicSales`, `OrganicOrders`, `ShippedAverageProductPrice`, `ShippedTACOS`, `OrderedAverageProductPrice`, `OrderedTACOS`
 
 ⚠️ **Only supported on asin `factEntity`** — do NOT join with Campaign/AdGroup/aiGroup dimensions (causes row duplication). See [`ad-type-dependent-metrics.md`](ad-type-dependent-metrics.md).
+
+#### Unified metrics on Vendor rows use shipped, not ordered
+
+**`TotalSalesAmount`, `OrderCount`, `UnitCount` mean something different depending on the row's store type** — same field name, different underlying source:
+
+| Metric | Seller row | Vendor row |
+|---|---|---|
+| `TotalSalesAmount` | Consumer order sales total | **Amazon-shipped revenue** (`shippedRevenue`) |
+| `OrderCount` / `UnitCount` | Consumer order count / units | **Amazon-shipped units** (`shippedUnits`) |
+| `TACOS` | `Spend ÷ TotalSalesAmount`, ordered-basis denominator | `Spend ÷ TotalSalesAmount`, **shipped-basis** denominator |
+
+Both are intended to represent "this ASIN's overall retail performance" and **can be summed directly in a mixed Seller+Vendor query** — that's the point of using shipped as the Vendor proxy (Amazon doesn't expose a consumer-order figure for Vendor, since Vendor sells to Amazon, not directly to the consumer). Don't tell the user "Vendor uses a different, incompatible metric" — the values are deliberately unified so `TotalSalesAmount`/`OrderCount`/`UnitCount`/`TACOS` can be treated the same way regardless of `storeType_`.
+
+If the user specifically needs to distinguish ordered vs. shipped (rather than just "total sales"), use the Vendor-specific metrics instead:
+
+| Need | Use | Availability |
+|---|---|---|
+| Consumer-order basis | `OrderedRevenue`, `OrderedTACOS` | **Only under `distributorView_: MANUFACTURING`** — returns `0` under `SOURCING` (Amazon doesn't provide ordered data for the self-supply view) |
+| Amazon-shipped basis | `ShippedRevenue`, `ShippedTACOS` | Available under both `MANUFACTURING` and `SOURCING` |
+
+#### Vendor dimension auto-locking (`distributorView_` / `sellingProgram_`)
+
+**These two fields don't follow this file's normal `entity.field_` dimension convention.** They're bare — `distributorView_`, `sellingProgram_` — carrying the usual `_` suffix but **no entity prefix** (not `asin.distributorView_`). They're recognized by dedicated server-side extraction logic rather than the general dimension-join system every other field in this file goes through, and that extraction logic is what applies the auto-locking behavior below.
+
+`storeType_` is a **different kind of field** — a normal returned dimension usable in `select`/`groupBy`/`filters` like any other, **not** subject to the auto-locking below and never appearing in `meta.appliedDefaults`. Don't group it with `distributorView_`/`sellingProgram_` when reasoning about locking behavior; it's only relevant here because it's what you group by to split a mixed Seller+Vendor query (see "Mixed Seller + Vendor queries" below).
+
+Vendor's underlying table has up to 4 rows per `(profileId, date, ASIN)` — one per `distributorView_` (`MANUFACTURING`/`SOURCING`) × `sellingProgram_` (`RETAIL`/`BUSINESS`) combination. **These 4 rows are different observation angles on the same business fact, not additive** — summing across them inflates ad metrics (Spend/Sales/Impressions) and `GlanceViews` by up to 4×, since those fields store the full value on every row.
+
+**Auto-locking only activates when the query includes at least one Vendor profile.** A query scoped to Seller profiles only is never locked and never returns `meta.appliedDefaults` — these dimensions have no meaning on Seller rows, so don't expect or look for `appliedDefaults` there. A mixed Seller+Vendor query is treated as a Vendor query for locking purposes (the table below applies).
+
+To prevent accidental fan-out on Vendor rows, the server **auto-locks both dimensions when you don't otherwise pin them**:
+
+| Your `select` | Your `filters` | `distributorView_` locked to | `sellingProgram_` locked to | `meta.appliedDefaults` |
+|---|---|---|---|---|
+| neither field | neither field | `MANUFACTURING` | `RETAIL` | `{"distributorView":"MANUFACTURING","sellingProgram":"RETAIL"}` |
+| neither field | `distributorView_=SOURCING` | your value (`SOURCING`) | `RETAIL` | `{"sellingProgram":"RETAIL"}` |
+| neither field | both filtered | your values | your values | not present |
+| includes `distributorView_` | no `sellingProgram_` filter | not locked (returned per-value) | `RETAIL` | `{"sellingProgram":"RETAIL"}` |
+| includes both fields | — | not locked | not locked | not present |
+
+`meta.appliedDefaults` on the response only lists the dimensions that actually fell back to a server default — a field you set explicitly (via `select` or `filters`) never appears there. **Check this field when a Vendor `asin` query's numbers look off** — if you didn't intend the default single-slice view (e.g. the user wants direct-supply performance), re-issue with `filters: {"distributorView_": "SOURCING"}` rather than trying to sum across views yourself.
+
+Practical guidance:
+- Default behavior (no explicit dimension) gives the brand's full-retail single-slice view (`MANUFACTURING` + `RETAIL`) — this is usually what "how is this ASIN doing" means.
+- For self-supply/direct performance specifically, filter `distributorView_: SOURCING` — remember only `Shipped*` metrics have data there (see table above).
+- Prefer `sellingProgram_: RETAIL` (the full-program figure) over `BUSINESS` unless the user specifically wants the B2B subset — never add the two together.
+- Never pass either dimension as a multi-value filter (`IN [...]`) — there is no "both views combined" business concept, and the server doesn't support it.
+
+Source: platform fix ticket BC-9770, confirmed against the MCP server's `pre` branch.
+
+#### Mixed Seller + Vendor queries
+
+- The unified metrics (`TotalSalesAmount`/`TACOS`/`OrganicSales`/etc.) can be aggregated directly across a query spanning both Seller and Vendor profiles — the result is a genuine store-type-blended figure (see "Unified metrics" above for why this is valid).
+- Vendor-specific metrics (`OrderedTACOS`/`ShippedTACOS`/etc.) are **not** safe to read at face value in a mixed query: the numerator (`Spend`) includes every store's ad spend, but the denominator (e.g. `ShippedRevenue`) only has a value on Vendor rows. If the user needs an accurate Vendor-specific ratio in a mixed-store query, either add `storeType_` to `select`/`groupBy` and compute it per store type, or re-query with only Vendor `profileIds`.
 
 ### Common user-to-field mapping
 | User says | Standard field |

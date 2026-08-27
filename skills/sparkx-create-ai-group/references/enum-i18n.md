@@ -61,6 +61,8 @@ group reads back as `2` once turned off.
 | `4` | 激进 | Aggressive |
 | `5` | 非常激进 | Very Aggressive |
 
+⚠️ **这份映射只用于理解用户输入**（把"偏保守""跑激进点"这类口语映射到 `1`-`5`）。向用户展示时——确认信息、查询结果、报告——一律直接显示数字（例如 **AI 人格：4**），不要替换或补充成"激进"/"Aggressive"这类文字标签。
+
 ## targetHarvestStatus - 目标收割
 
 | code | 中文 | English |
