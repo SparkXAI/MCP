@@ -32,7 +32,7 @@
 - **程序读取**：[`manifest.json`](manifest.json) 是机器可读的版本清单（每条含 `name`、`version`、`required`、`mcp_tools`（数组）、`scopes`（数组）、`path`、`description`），可通过固定地址获取：
 
   ```
-  https://raw.githubusercontent.com/SparkXAI/MCP/main/skills/manifest.json
+  https://raw.githubusercontent.com/SparkXAI/SparkXAI-MCP/main/skills/manifest.json
   ```
 
 - **人工查看**：每个 Skill 的版本号在其 `SKILL.md` frontmatter 的 `metadata.version` 字段；整体变更历史见 [CHANGELOG.md](../CHANGELOG.md)。

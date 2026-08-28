@@ -5,8 +5,8 @@
   "author": {
     "name": "SparkX AI"
   },
-  "homepage": "https://github.com/SparkXAI/MCP",
-  "repository": "https://github.com/SparkXAI/MCP",
+  "homepage": "https://github.com/SparkXAI/SparkXAI-MCP",
+  "repository": "https://github.com/SparkXAI/SparkXAI-MCP",
   "license": "MIT",
   "keywords": [
     "amazon-ads",
@@ -37,7 +37,7 @@
       "Analytics",
       "Write"
     ],
-    "websiteURL": "https://github.com/SparkXAI/MCP",
+    "websiteURL": "https://github.com/SparkXAI/SparkXAI-MCP",
     "defaultPrompt": [
       "Show my stores and summarize yesterday's ad performance.",
       "Rank last week's campaigns by spend and include ACOS.",

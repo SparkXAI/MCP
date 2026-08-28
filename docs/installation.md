@@ -41,7 +41,7 @@ SparkX AI MCP 支持 OAuth 和 MCP Token 两种授权方式。两种方式使用
 
 ```text
 请阅读以下 GitHub 仓库，并按说明配置 SparkX AI MCP 和安装 Skills：
-https://github.com/SparkXAI/MCP
+https://github.com/SparkXAI/SparkXAI-MCP
 
 SparkX AI MCP 支持 OAuth 和 MCP Token 两种授权方式。
 请先检查当前客户端支持哪些授权方式，简要说明两种方式分别适合哪些场景，并让我确认使用哪一种方式后再开始授权。
@@ -72,7 +72,7 @@ SparkX AI MCP 支持 OAuth 和 MCP Token 两种授权方式。
 
 1. 切换到 **Code** 标签页。
 2. 点击输入框旁的 **+ → Plugins → Add plugin**，打开 Plugin browser。
-3. 在 **Marketplaces** 中选择从 repository 添加，输入 `SparkXAI/MCP`。
+3. 在 **Marketplaces** 中选择从 repository 添加，输入 `SparkXAI/SparkXAI-MCP`。
 4. 找到并安装 **SparkX AI MCP**。Plugin 会同时安装 MCP server 和全部 10 个 Skills。
 
 > **注意：**Claude Code Desktop 不支持 `/plugin` 命令。该命令仅用于 Claude Code CLI；桌面端请使用 Plugin browser。
@@ -81,7 +81,7 @@ SparkX AI MCP 支持 OAuth 和 MCP Token 两种授权方式。
 
 1. 点击左侧边栏的 **Plugins**。
 2. 点击右上角的 **Add → Add a marketplace**。
-3. 输入 `SparkXAI/MCP` 并添加 marketplace。
+3. 输入 `SparkXAI/SparkXAI-MCP` 并添加 marketplace。
 4. 在 **Plugins** 中找到新添加的 marketplace，然后安装 **SparkX AI MCP**。
 5. 新建一个 Codex 任务，MCP server 和全部 10 个 Skills 将在新任务中可用。
 
@@ -94,14 +94,14 @@ SparkX AI MCP 支持 OAuth 和 MCP Token 两种授权方式。
 ##### Claude Code CLI
 
 ```text
-/plugin marketplace add SparkXAI/MCP
+/plugin marketplace add SparkXAI/SparkXAI-MCP
 /plugin install sparkx-ai-mcp@sparkx-ai
 ```
 
 ##### Codex CLI
 
 ```bash
-codex plugin marketplace add SparkXAI/MCP
+codex plugin marketplace add SparkXAI/SparkXAI-MCP
 codex
 ```
 
