@@ -46,7 +46,7 @@ The query subject determining aggregation granularity:
 - `campaign`: campaign level (the only entity that supports `timeGranularity: hourly`)
 - `adGroup`: ad group level
 - `target`: keyword/targeting level (requires `queryType`: `keyword` / `product` / `auto`)
-- `searchTerm`: search term level (requires `queryType`: `keyword` / `product` — **`auto` is not valid here**, unlike `target`)
+- `searchTerm`: search term level. `queryType`, when specified, only accepts `keyword` / `product` — **`auto` is rejected outright**. **Omitting `queryType` entirely is valid** and returns the full unfiltered search-term set (manual keyword/product terms mixed with Auto-matched terms) — this is currently the only way to retrieve Auto-targeting search terms; filter by `matchType_` to isolate them (see field-reference.md and the search-term example)
 - `placement`: ad placement level
 - `productAd`: product ad level
 - `asin`: ASIN business data level (adds business metrics like TotalSalesAmount, TACOS)
@@ -96,7 +96,7 @@ Auxiliary tables for joining and aggregating — referenced via `select`/`filter
 | orderBy | array[object] | No | [] | `[{"field": "Spend", "direction": "DESC"}]` (direction ASC or DESC, default DESC) |
 | page | int | No | 1 | Page number (1-based). **`page` ≤ 0 is an error**, not a fallback to 1 |
 | pageSize | int | No | 100 | Rows per page, **max 500**. **Out of range (≤0 or >500) is an error**, not clamped — floor any computed value at 1 |
-| queryType | string | No | — | Required semantically when `factEntity` is `target` or `searchTerm` — but the allowed values differ by entity, see below |
+| queryType | string | No | — | Meaningful only for `factEntity: target` (semantically required there: `keyword`/`product`/`auto`) and `factEntity: searchTerm` (optional — `keyword`/`product` filter to that source, `auto` errors, **omitting it returns everything, manual + Auto mixed**). On any other `factEntity` (e.g. `campaign`) it's accepted but silently has no effect — verified, not an error |
 | timeGranularity | string | No | daily | `daily` / `hourly`. **`hourly` is only valid with `factEntity: campaign`**; any other value or entity combination is an error. See Hourly / AMS Data below |
 | language | string | No | **en** | Enum translation language: `zh` / `en` / `ja`. An unrecognized value silently falls back to `en`, so set it explicitly to match the user's language |
 

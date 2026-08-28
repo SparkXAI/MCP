@@ -162,10 +162,12 @@ Same values as campaignServingStatus above, plus:
 | `phrase` | Keyword-Phrase | 关键词-词组 | キーワード-フレーズ |
 | `exact` | Keyword-Exact | 关键词-精准 | キーワード-完全一致 |
 | `targeting` | Product Targeting | 商品投放 | 商品ターゲティング |
-| `substitutes` | Auto-Substitutes | 自动-同类商品 | 自動-類似商品 |
-| `complements` | Auto-Complements | 自动-关联商品 | 自動-関連商品 |
-| `loose-match` / `looseMatch` | Auto-Loose Match | 自动-宽泛匹配 | 自動-緩いマッチ |
-| `close-match` / `closeMatch` | Auto-Close Match | 自动-紧密匹配 | 自動-密なマッチ |
+| `SUBSTITUTES` | Auto-Substitutes | 自动-同类商品 | 自動-類似商品 |
+| `COMPLEMENTS` | Auto-Complements | 自动-关联商品 | 自動-関連商品 |
+| `LOOSE-MATCH` | Auto-Loose Match | 自动-宽泛匹配 | 自動-緩いマッチ |
+| `CLOSE-MATCH` | Auto-Close Match | 自动-紧密匹配 | 自動-密なマッチ |
+
+⚠️ **Casing/format verified for these four Auto values, not for the other `matchType` rows above** (`broad`/`phrase`/`exact`/`targeting`/`asin-expanded`/`asin`/`category` are unverified — don't assume they're upper-case too until confirmed). Only `LOOSE-MATCH`/`CLOSE-MATCH` are hyphenated; `SUBSTITUTES`/`COMPLEMENTS` are single words with no hyphen.
 | `asin-expanded` / `asinExpanded` | ASIN-Expanded | 商品-扩展ASIN | ASIN-拡張 |
 | `asin` | PAT-Individual Product | 商品-单个商品 | 商品-単一商品 |
 | `category` | PAT-Category | 商品-品类 | 商品-カテゴリ |

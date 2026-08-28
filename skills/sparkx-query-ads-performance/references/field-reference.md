@@ -65,10 +65,12 @@
 
 | Field | Description | Enum |
 |---|---|---|
-| `query_` | Search term text | — |
-| `matchType_` | Match type | `broad` / `phrase` / `exact` / `targeting` / `substitutes` / `complements` / `loose-match` / `close-match` / `asin-expanded` / `asin` / `category` |
+| `query_` | Shopper search text or matched ASIN, depending on `matchType_` — real search text for `CLOSE-MATCH`/`LOOSE-MATCH`; an ASIN for `SUBSTITUTES`/`COMPLEMENTS`, since those are product-detail-page placements with no search query behind them | — |
+| `matchType_` | Match type | `broad` / `phrase` / `exact` / `targeting` / `SUBSTITUTES` / `COMPLEMENTS` / `LOOSE-MATCH` / `CLOSE-MATCH` / `asin-expanded` / `asin` / `category` — the four Auto values are **verified upper-case** (only `LOOSE-MATCH`/`CLOSE-MATCH` are hyphenated, `SUBSTITUTES`/`COMPLEMENTS` are single words); the non-Auto values (`broad`/`phrase`/`exact`/`targeting`/`asin-expanded`/`asin`/`category`) have not been separately re-verified for casing — confirm before assuming they follow the same pattern |
 | `targetId_` | Related target ID | — |
 | `adGroupId_` / `campaignId_` | Parent IDs | — |
+
+**`matchTypeText` cannot be added to `select` on this entity** — confirmed to fail with `business_error` (`invalid query parameters`). `matchType_` itself works fine in `select`/`filters`; only its `Text` companion is rejected here (unlike most enum fields elsewhere, where the `Text` companion is normally readable — see the Enum-to-Text convention in this skill's SKILL.md).
 
 ### KeywordPlacement (asymmetric naming: bare in request, `_`-suffixed in response)
 

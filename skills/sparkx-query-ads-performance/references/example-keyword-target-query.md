@@ -18,6 +18,6 @@ Find enabled keyword targets with the lowest ACOS (spend above a floor, to avoid
 ```
 
 Notes:
-- `queryType: "keyword"` is required whenever `factEntity` is `target` (or `searchTerm`). On `target`, `queryType` can be `keyword`/`product`/`auto`; on `searchTerm` only `keyword`/`product` are valid (`auto` is not).
+- For `factEntity: target`, exactly one `queryType` value is required: `keyword`, `product`, or `auto`. On `searchTerm` it's **optional** — `keyword`/`product` filter to that source, `auto` is rejected, and **omitting it returns everything (manual + Auto-matched terms mixed)** — see the search-term example for retrieving Auto-matched terms via `matchType_` instead.
 - `target.targetMatchType_` for a keyword-type query returns `broad`/`phrase`/`exact`.
 - `Spend": {">": 5}` is a metric-field filter (evaluated in HAVING), separate from the dimension-field filter `target.targetState_` (evaluated in WHERE) — both can appear in the same flat `filters` object.
