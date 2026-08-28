@@ -7,7 +7,7 @@ description: >-
   budget adjustment, AI auto-adjustment, pause/enable records, operation audit,
   modification timeline, ad adjustment log
 metadata:
-  version: 1.2.0
+  version: 1.2.1
 ---
 
 # Query Operation Log Skill
@@ -181,7 +181,7 @@ The MCP layer does no conversion; this is how the log data itself is returned.
 | `requestId` | string | Trace ID — quote it when reporting a failure to the user. May be absent locally |
 | `currency` | string | Optional roll-up of the rows' currencies: a single code if all rows agree, the literal **`"mixed"`** if they don't, absent if no row carries one. **`"mixed"` is not a currency** — fall back to each row's `currencyCode`, and never sum or format amounts across a mixed result |
 
-On error, the response instead follows the shared error envelope described in Platform-Wide Rules above (two shapes: `errorType` for tool errors, `error` for pipeline errors such as `rate_limited`).
+On error, the response instead follows the shared error envelope described in Platform-Wide Rules above (all errors use a single top-level `errorType`, tool and pipeline alike, e.g. `rate_limited`).
 
 ## Getting a Complete Count (handling large result sets rigorously)
 
@@ -246,7 +246,8 @@ There is no server-side `groupBy` for this tool — to answer "how many budget c
 - `profileIds` is **required**. Always call `get_user_authorized_context` first. If the user doesn't name a store, pass all authorized `profileIds` — but note this also switches ad-entity timestamps to UTC (see above)
 - **Every requested `profileId` must be authorized** — one bad value fails the whole call (`Requested profileIds contain unauthorized values`); nothing is silently dropped
 - `pageSize` on this tool is **clamped** silently (over the max → capped, no error). This differs from `get_ads_perf`/`get_entity_metadata`, where an out-of-range `pageSize` is an error
-- `changeBy`, `actionType`, and `operationType` should be passed as objects with explicit `operator`/`values` (not bare arrays)
+- `changeBy`, `actionType`, and `operationType` must be passed as objects with explicit `operator`/`values` (not bare arrays). **Incomplete filters are rejected with `invalid_params`** (no longer silently ignored): a missing `operator`, or `values` that is `null` / an empty array / all-`null`, all fail — build the full `{"operator": "IN", "values": [...]}` object or omit the filter entirely.
+- **`resourceIds` is strictly validated too**: each item must be an object with `idEntity` and an `ids` array of numbers — a missing `idEntity`, a non-numeric ID, or a non-array `ids` returns `invalid_params` (previously such items were silently dropped, e.g. "3 IDs requested, only 2 queried"). **Exception:** an explicit `ids: null` is a *reserved* value meaning "no ID restriction" (different from `[]`, which means the scope genuinely has no results) — it is accepted, not rejected.
 - To find a resource by name (campaign name, keyword text, ASIN) rather than ID, resolve it first via `get_entity_metadata`, then pass the ID into `resourceIds`
 - No server-side aggregation (`groupBy`) — aggregate client-side after pulling rows, splitting non-overlapping date windows whenever `truncated=true`
 - When `profileIds` spans multiple stores, map each row's `profileId` to a `profileName` before describing results

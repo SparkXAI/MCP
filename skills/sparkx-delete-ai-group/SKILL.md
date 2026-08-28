@@ -8,7 +8,7 @@ description: >-
   group (use sparkx-edit-ai-group), editing config (use sparkx-edit-ai-group), or creating a group (use
   sparkx-create-ai-group).
 metadata:
-  version: 1.0.3
+  version: 1.0.4
 ---
 
 # Delete AI Managed Group
@@ -150,8 +150,8 @@ with a read.
 
 Errors come back as `{ "isError": true, "data": { "error": "...", "recoveryHint":
 "..." } }` - relay `recoveryHint` when present. (Some failures instead use the top-level
-`errorType`/`error` shape documented in `references/platform-notes.md`; check `isError`
-first, then look for either form.) It isn't always populated (some come
+`errorType` shape (pipeline-level failures: auth, rate-limit, downstream, timeout) documented in `references/platform-notes.md`; check `isError`
+first, then read the top-level `errorType`.) It isn't always populated (some come
 back generic, e.g. `"Resource Not Found"`, `"aigroup AI is running"`), so map them:
 
 | Symptom | Likely cause | What to do |

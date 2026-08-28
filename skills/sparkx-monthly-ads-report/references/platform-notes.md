@@ -69,9 +69,9 @@ Any of the 3 tools can legitimately return zero rows for reasons that have nothi
 
 ## Error Response Format
 
-**There are two error shapes, and they use different field names.** Check for `isError:true` first, then look for `errorType` *or* `error` — don't assume only one exists.
+**Every error uses a single `errorType` key.** Check `isError:true` first, then read `errorType`; depending on the error, extra fields accompany it (`requestId`, `recoveryHint`, `service`, `dimension`, `retryAfterSeconds`).
 
-**Shape A — tool-execution errors** (parameter validation, query failures) use `errorType`:
+**Tool-execution errors** (parameter validation, query failures) — `errorType`:
 ```json
 {
   "isError": true,
@@ -83,11 +83,11 @@ Any of the 3 tools can legitimately return zero rows for reasons that have nothi
 }
 ```
 
-**Shape B — pipeline errors** (raised before/around tool execution: auth, rate limit, downstream service) use `error`:
+**Pipeline errors** (auth, rate limit, downstream service) — same `errorType` key, plus error-specific fields:
 ```json
 {
   "isError": true,
-  "error": "rate_limited",
+  "errorType": "rate_limited",
   "dimension": "tenant",
   "retryAfterSeconds": 30,
   "message": "Rate limit exceeded on dimension [tenant]. Retry after 30 seconds."
@@ -96,20 +96,21 @@ Any of the 3 tools can legitimately return zero rows for reasons that have nothi
 
 `requestId` is present on responses (success and error) and is the support handle. **When you report a tool failure to the user, include `requestId`** — it's what lets the platform team trace the call. It may be absent in local/dev environments.
 
-**Error identifier enum** (union of both shapes):
+**`errorType` enum** (every value uses the `errorType` key):
 
-| identifier | Shape | Meaning | Common cause |
-|---|---|---|---|
-| `invalid_params` | A | Bad parameters | Missing required param, bad date format, date span over limit, unauthorized `profileIds`, `pageSize` out of range, illegal `timeGranularity` |
-| `query_error` | A | Query failure | Backend query call failed |
-| `serialization_error` | A / B | Serialization failure | Rare fallback case |
-| `rate_limited` | B | Rate-limited | Token bucket exhausted on one dimension — retry after `retryAfterSeconds` |
-| `rate_limit_service_unavailable` | B | Rate limiter down | The limiter fails **closed**: when it can't check, the request is rejected (429), not let through |
-| `token_invalid` | B | Auth failure (401) | Token expired/invalid |
-| `permission_denied` / `scope_missing` / `api_not_authorized` | B | Auth failure (403) | Token lacks the tool's scope, or the user's role lacks the underlying permission |
-| `profile_out_of_range` | B | Auth failure (403) | Requested profile outside the token's grant |
-| `business_error` | B | Downstream service error | Carries a `service` field (e.g. `Amazon_SA_Service`); the message is the downstream error |
-| `timeout` | B | Query timeout | Narrow the range and retry |
+| identifier | Meaning | Common cause |
+|---|---|---|
+| `invalid_params` | Bad parameters | Missing required param, bad date format, date span over limit, unauthorized `profileIds`, `pageSize` out of range, illegal `timeGranularity`, null filter value |
+| `serialization_error` | Serialization failure | Rare fallback case |
+| `rate_limited` | Rate-limited | Token bucket exhausted on one dimension — retry after `retryAfterSeconds` |
+| `rate_limit_service_unavailable` | Rate limiter down | The limiter fails **closed**: when it can't check, the request is rejected (429), not let through |
+| `token_invalid` | Auth failure (401) | Token expired/invalid |
+| `permission_denied` / `scope_missing` / `api_not_authorized` | Auth failure (403) | Token lacks the tool's scope, or the user's role lacks the underlying permission |
+| `profile_out_of_range` | Auth failure (403) | Requested profile outside the token's grant |
+| `business_error` | Backend / query-execution error (most common) | Read the semantic `message` and branch (unknown field, filter value type mismatch, result set too large, execution timeout, server busy); downstream service errors carry a `service` field (e.g. `Amazon_SA_Service`) |
+| `timeout` | Query timeout | Narrow the range and retry |
+| `service_unavailable` | Backend data source unavailable | ClickHouse connection pool exhausted — transient, retry shortly |
+| `auth_service_unavailable` | Auth service unavailable | Auth check failed closed (503) — transient, retry shortly |
 
 **The configured rate-limit policy** (token-bucket, per 60s window). Whether limiting is switched on is an environment setting, so you may never hit these — but plan against them rather than assuming they're off:
 
@@ -127,12 +128,28 @@ The `dimension` field on a `rate_limited` error tells you which bucket you hit: 
 - `rate_limited` → wait `retryAfterSeconds` before retrying the *same* call. Don't retry in a loop. If it recurs, tell the user the query is being throttled and narrow scope (smaller date range, fewer profiles, fewer pages).
 - `rate_limit_service_unavailable` → not your query's fault and not retryable immediately; the platform is failing closed. Tell the user the service is temporarily rejecting requests.
 - `token_invalid` / `permission_denied` / `scope_missing` / `profile_out_of_range` → an auth/permission problem, not a query bug. Name the scope the tool needs (see Permission Scopes) and tell the user to have their token/role updated. Retrying the same call won't help.
-- `query_error` / `business_error` / `timeout` → backend failure, not a param problem. Retry once; if it persists, tell the user the data source is temporarily unavailable (quote `requestId`) rather than implying their question is unanswerable.
+- `business_error` → **read the `message` and branch — it is semantically translated, do NOT blindly retry**: `unknown field 'X'` → fix the field name against field_reference and retry; `filter value type mismatch` → fix the filter value's type and retry; `result set too large` → narrow the date range / add filters; `execution timeout` → narrow and retry; `server is busy` → wait a few seconds and retry; any other internal error → report as a transient failure and quote `requestId`.
+- `timeout` / `service_unavailable` / `auth_service_unavailable` → backend/dependency temporarily unavailable, not a param problem. Retry once; if it persists, tell the user the data source is temporarily unavailable (quote `requestId`).
 - `serialization_error` → rare edge case; report as a transient tool error, retry once.
 
 Messages are sanitized server-side: SQL, tokens, signed URLs, internal hostnames, stack traces, and raw table names are redacted (you may see `[SQL_REDACTED]`, `[redacted_token]`, `[internal]`, `[table]`). Don't treat a redaction marker as corruption, and don't try to reconstruct what was removed.
 
 Always check `isError` before reading `rows` — do not assume a response without `isError:false` explicitly checked is safe to parse as data.
+
+## Null Filter Values Are Rejected
+
+**Do not put null in `filters`.** All 3 read tools reject a null filter value (`invalid_params`, naming the field). This is intentional: a null used to be silently dropped, turning the query unconditional and returning **unfiltered full data** — indistinguishable from "the condition matched every row". The classic trigger: you look up an ID, the lookup returns empty, and you splice that empty result straight in as a filter value. **Abort on the empty result** instead.
+
+### Query for genuinely-empty rows (`get_ads_perf` only)
+
+```json
+{"filters": {"campaign.campaignName_": {"isNull": true}}}
+{"filters": {"campaign.campaignName_": {"isNotNull": true}}}
+```
+
+The boolean says whether the test holds, so `{"isNull": false}` equals `{"isNotNull": true}`. `isNull` rows + `isNotNull` rows = the unfiltered whole.
+
+**`get_entity_metadata` has no null-test operator** (its downstream vocab is only eq/ne/in/notin/like/between) — to drop a constraint, just omit the field.
 
 ## Pagination Rules
 

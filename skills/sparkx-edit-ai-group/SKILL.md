@@ -9,7 +9,7 @@ description: >-
   save_sp_sb_ai_managed_group (edit mode). Not for creating a group (use sparkx-create-ai-group)
   or deleting one (use sparkx-delete-ai-group).
 metadata:
-  version: 1.1.0
+  version: 1.1.1
 ---
 
 # Edit AI Managed Group

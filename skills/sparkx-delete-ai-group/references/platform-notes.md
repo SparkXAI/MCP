@@ -91,14 +91,11 @@ or from the surrounding pipeline:
   "errorType": "invalid_params", "message": "<message>", "recoveryHint": "<hint, if any>" }
 ```
 ```json
-{ "isError": true, "error": "business_error", "service": "Amazon_SA_Service",
+{ "isError": true, "errorType": "business_error", "service": "Amazon_SA_Service",
   "message": "<downstream message>" }
 ```
 
-- Check `isError` first, then look for `errorType` **or** `error` - don't assume only one
-  exists. Pipeline failures (`rate_limited`, `token_invalid`, `permission_denied`,
-  `scope_missing`, `business_error`, `timeout`) use `error`; parameter/validation failures
-  use `errorType`.
+- Check `isError` first, then read the top-level `errorType`. All pipeline failures (`rate_limited`, `token_invalid`, `permission_denied`, `scope_missing`, `business_error`, `timeout`) and parameter/validation failures use `errorType`. A tool's own business failure instead carries a nested `data.error` (+ optional `data.recoveryHint`) — see "Errors" below.
 - **The configured write budget is 20 calls/min** per tenant+tool and per user+tool (reads
   get 120); whether limiting is enabled is an environment setting, so treat it as a ceiling
   to plan against rather than something you can count on being off. A serial "write, read

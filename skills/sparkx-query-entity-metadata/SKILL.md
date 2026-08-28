@@ -8,7 +8,7 @@ description: >-
   which ads, enabled/paused status, budget settings, bidding strategy, automation rules,
   managed group schedule, flight, seasonal plan, rule mode config, RBA rule conditions
 metadata:
-  version: 1.2.0
+  version: 1.2.1
 ---
 
 # Query Entity Metadata Skill
@@ -298,7 +298,7 @@ as the displayed value. Do not substitute its `Text` companion; see the managed-
 | `effectiveProfileIds` | array[long] | Profile IDs the query ran against — an echo of your request (unauthorized IDs fail the call outright) |
 | `meta.hint` | string | Present when something was adjusted silently, e.g. `Unknown select fields ignored: [...]` — read it |
 
-On error, the response instead follows the shared error envelope described in Platform-Wide Rules above (two shapes: `errorType` for tool errors, `error` for pipeline errors). A missing `entity` param surfaces as `errorType: invalid_params`.
+On error, the response instead follows the shared error envelope described in Platform-Wide Rules above (all errors use a single top-level `errorType`, tool and pipeline alike). A missing `entity` param surfaces as `errorType: invalid_params`.
 
 ## Notes
 
@@ -322,6 +322,7 @@ On error, the response instead follows the shared error envelope described in Pl
 - `targetAcos` (aiGroup entity) is confirmed ×100/percentage, same as performance `ACOS` — don't re-scale, but append `%` when presenting it
 - Only use field names listed in this doc's per-entity tables; never invent field names
 - Field naming here (camelCase, no prefix/suffix) is **different** from `get_ads_perf` (`entity.field_`) — do not mix the two conventions
+- **Do not pass null as a filter value** — it returns `invalid_params`. This tool has no `isNull`/`isNotNull` operator; to drop a constraint, simply omit the field.
 - On error, check `errorType` and handle per the guidance above
 
 ## Reference Docs

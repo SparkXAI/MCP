@@ -9,7 +9,7 @@ description: >-
   hourly data, by hour, intraday, AMS, Amazon Marketing Stream, keyword placement,
   vendor, seller, distributorView, sellingProgram, shipped revenue, ordered revenue, TACOS
 metadata:
-  version: 1.2.0
+  version: 1.2.1
 ---
 
 # Query Ads Performance Skill
@@ -223,6 +223,8 @@ Nested example:
 
 Dimension-field filters run in `WHERE`; metric-field filters run in `HAVING`.
 
+**Do not pass null as a filter value** — it returns `invalid_params`. To match rows where a field is genuinely empty use the explicit form `{"field": {"isNull": true}}` or `{"isNotNull": true}` (the boolean says whether the test holds, so `{"isNull": false}` = `{"isNotNull": true}`). See platform-notes "Null Filter Values Are Rejected".
+
 **`like` wildcard note**: any `%` you write is stripped and replaced with an automatic leading+trailing `%` — the match is always "contains" regardless of where you place `%` in the pattern.
 
 ## Response Structure
@@ -266,7 +268,7 @@ Dimension-field filters run in `WHERE`; metric-field filters run in `HAVING`.
 | `effectiveProfileIds` | array[long] | Profile IDs the query actually ran against — an echo of your request (unauthorized IDs fail the call outright rather than being dropped here). Verify it's the store the user meant |
 | `currency` | string | Currency of monetary metrics: the profile's local code for a single profile, `USD` for multiple |
 
-On error, the response instead follows the shared error envelope described in Platform-Wide Rules above — note there are **two shapes** (`errorType` for tool errors, `error` for pipeline errors such as `rate_limited` / auth failures).
+On error, the response instead follows the shared error envelope described in Platform-Wide Rules above — all errors use a single top-level `errorType` (tool and pipeline alike, e.g. `rate_limited` / auth failures).
 
 ## Notes
 

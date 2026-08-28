@@ -10,7 +10,7 @@ description: >-
   for enabling or editing an existing group (use sparkx-edit-ai-group) or deleting one (use
   sparkx-delete-ai-group).
 metadata:
-  version: 1.1.0
+  version: 1.1.1
 ---
 
 # Create AI Managed Group
